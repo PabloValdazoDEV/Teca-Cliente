@@ -1,11 +1,14 @@
 import { useForm } from "react-hook-form";
 import { tryLogin } from "@/API";
 import { useNavigate } from "react-router";
-
+import { useState } from "react";
+import { useEffect } from "react";
+import "@/assets/form.css";
 
 const FormLogin = () => {
+  const [viewPassword, setViewPassword] = useState(false);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -17,45 +20,39 @@ const FormLogin = () => {
   const onSubmit = async (data) => {
     try {
       await tryLogin(data);
-      navigate("/home"); 
+      navigate("/home");
       reset();
     } catch (error) {
       console.error("Error en el login:", error);
     }
   };
 
+  useEffect(() => {
+    const x = document.getElementById("inputPassword");
+    if (viewPassword) {
+      x.type = "text";
+    } else {
+      x.type = "password";
+    }
+  }, [viewPassword]);
+
   return (
     <>
-      <h1>Login</h1>
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 5,
-            marginBottom: 10,
-          }}
-        >
-          <label id="username">Username</label>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <h2 className="text-xl text-white">Login</h2>
+        <div>
+          <label id="email">Email</label>
           <input
             type="text"
-            {...register("username", { required: true })}
-            onBlur={(e) => setValue("username", e.target.value.trim())}
+            {...register("email", { required: true })}
+            onBlur={(e) => setValue("email", e.target.value.trim())}
           />
-          {errors.username && <p style={{ color: "red" }}>Campo requerido</p>}
         </div>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 5,
-            marginBottom: 20,
-          }}
-        >
-          <label id="username">Password</label>
+        {errors.email && <p style={{ color: "red" }}>Campo requerido</p>}
+        <div>
+          <label id="password">Password</label>
           <input
+            id="inputPassword"
             type="password"
             {...register("password", {
               required: true,
@@ -65,13 +62,26 @@ const FormLogin = () => {
               },
             })}
           />
-          {errors.password?.type === "required" && (
-            <p style={{ color: "red" }}>Campo requerido</p>
-          )}
-          {errors.password?.type === "pattern" && (
-            <p style={{ color: "red" }}>{errors.password.message}</p>
-          )}
+
+          <a
+          id="viewPassword"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setViewPassword((prev) => !prev);
+            }}
+          >
+            X
+          </a>
+
         </div>
+
+        {errors.password?.type === "required" && (
+          <p style={{ color: "red" }}>Campo requerido</p>
+        )}
+        {errors.password?.type === "pattern" && (
+          <p style={{ color: "red" }}>{errors.password.message}</p>
+        )}
         <button>Send</button>
       </form>
     </>

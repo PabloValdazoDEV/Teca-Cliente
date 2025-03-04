@@ -1,13 +1,11 @@
 import { Route, Routes, Navigate } from "react-router";
-import "@/App.css";
-import Home from "@/components/Home";
 import HomeAuth from "@/components/HomeAuth";
 import FormLogin from "@/components/FormLogin";
 import FormRegister from "@/components/FormRegister";
 import isAuth from "@/API/middleware/isAuth";
 
 const PrivateRoute = ({ element }) => {
-  return isAuth() ? element : <Navigate to="/login" />;
+  return isAuth() ? element : <Navigate to="/" />;
 };
 
 const PublicRoute = ({ element }) => {
@@ -19,9 +17,7 @@ function App() {
     <>
       <Routes>
         <Route path="/">
-          <Route path="" element={<Home />} />
-
-          <Route path="login" element={<PublicRoute element={<FormLogin />} />} />
+          <Route path="" element={<PublicRoute element={<FormLogin />} />} />
 
           <Route path="register" element={<PrivateRoute element={<FormRegister />} />} />
           <Route path="home" element={<PrivateRoute element={<HomeAuth />} />} />

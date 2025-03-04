@@ -39,4 +39,15 @@ const tryLogout = async () => {
   Cookies.remove("token"); // Change to the Cookies
 };
 
-export { GetAllUsers, tryLogin, tryRegister, tryLogout };
+
+
+const getDataCalendario = async (trabajador) =>{
+  try {
+    const response = await api.get(`http://localhost:3000/citas/calendario?trabajador=${trabajador}`)
+    return response.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export { GetAllUsers, tryLogin, tryRegister, tryLogout, getDataCalendario };

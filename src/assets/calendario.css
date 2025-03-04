@@ -1,0 +1,15 @@
+.fc {
+    background-color: white !important;
+    color: black !important;
+    width: 1000px;
+    padding: 2rem;
+    height: auto;
+  }
+  
+  .evento-cita {
+    background-color: #3498db !important; /* Azul */
+    color: white !important;
+    border-radius: 5px;
+    padding: 5px;
+    font-weight: bold;
+  }
