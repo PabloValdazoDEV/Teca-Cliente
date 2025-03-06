@@ -14,8 +14,8 @@ const HomeAuth = () => {
   };
 
   return (
-    <div className='h-screen'>
-      <h1>Logeado 👍🏼</h1>
+    <div style={{marginTop: 20}}>
+      {/* <h1>Logeado 👍🏼</h1>
       <div className=''>
       <h2>Selecciona un trabajador:</h2>
       <select onChange={(e) => setTrabajador(e.target.value)}>
@@ -24,7 +24,7 @@ const HomeAuth = () => {
       </select>
       <Calendario trabajador={trabajador} />
     </div>
-      <button onClick={onSubmit}>LogOut</button>
+      <button onClick={onSubmit}>LogOut</button> */}
     </div>
   );
 };

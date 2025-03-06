@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useEffect } from "react";
 import "@/assets/form.css";
 
-const FormLogin = () => {
+const PageLogin = () => {
   const [viewPassword, setViewPassword] = useState(false);
 
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ const FormLogin = () => {
 
   return (
     <>
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form id="login" onSubmit={handleSubmit(onSubmit)}>
         <h2 className="text-xl text-white">Login</h2>
         <div>
           <label id="email">Email</label>
@@ -88,4 +88,4 @@ const FormLogin = () => {
   );
 };
 
-export default FormLogin;
+export default PageLogin;

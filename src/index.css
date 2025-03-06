@@ -2,19 +2,17 @@
 @import "tailwindcss";
 
 
-*{
+body{
   padding: 0;
   margin: 0;
+  box-sizing: border-box;
 }
 #root {
-  max-width: 1280px;
   text-align: center;
   font-family: "Roboto", serif;
-  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin:auto
 }
 
 
