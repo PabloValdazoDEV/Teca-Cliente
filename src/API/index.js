@@ -1,9 +1,9 @@
 import api from "@/API/api";
-import Cookies from "js-cookie"
+import Cookies from "js-cookie";
 
 const GetAllUsers = async () => {
   try {
-    const responde = await api.get("/users")
+    const responde = await api.get("/users");
     return responde.data;
   } catch (error) {
     console.error("Error al obtener los usuarios:", error);
@@ -16,7 +16,7 @@ const tryLogin = async (data) => {
     const response = await api.post("/login", data);
 
     if (response.data.token) {
-      Cookies.set("token", response.data.token); // chnage to the Cookies
+      Cookies.set("token", response.data.token);
     }
 
     return response.data;
@@ -25,29 +25,78 @@ const tryLogin = async (data) => {
   }
 };
 
-
- 
 const tryRegister = async (data) => {
   try {
     await api.post("/register", data);
   } catch (error) {
-    console.error("Error en el registro:", error.response?.data || error.message);
+    console.error(
+      "Error en el registro:",
+      error.response?.data || error.message
+    );
   }
 };
 
 const tryLogout = async () => {
-  Cookies.remove("token"); // Change to the Cookies
+  Cookies.remove("token");
 };
 
-
-
-const getDataCalendario = async (trabajador) =>{
+const getDataCalendario = async (trabajador) => {
   try {
-    const response = await api.get(`http://localhost:3000/citas/calendario?trabajador=${trabajador}`)
-    return response.data
+    const response = await api.get(
+      `/citas/calendario?trabajador=${trabajador}`
+    );
+    return response.data;
   } catch (error) {
-    console.error(error)
+    console.error(error);
   }
-}
+};
 
-export { GetAllUsers, tryLogin, tryRegister, tryLogout, getDataCalendario };
+const getFormDateCreate = async () => {
+  try {
+    const response = await api.get("/citas/createForm");
+    // console.log(response.data)
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const getFormDateUser = async (id) => {
+  try {
+    const response = await api.get(
+      `/citas/createCalendar/${id}`
+    );
+    // console.log(response.data)
+    return response.data;
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const postDataCreate = async (data) => {
+  try {
+    await api.post("/citas/dateCreate", data);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const deleteDate = async (id) => {
+  try {
+    await api.delete(`/citas/delete/${id}`,);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export {
+  GetAllUsers,
+  tryLogin,
+  tryRegister,
+  tryLogout,
+  getDataCalendario,
+  getFormDateCreate,
+  getFormDateUser,
+  postDataCreate,
+  deleteDate,
+};

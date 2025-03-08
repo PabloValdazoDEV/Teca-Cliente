@@ -1,43 +1,95 @@
 import { useForm } from "react-hook-form";
 import InputForm from "../components/InputForm";
 import AutocompleteInput from "../components/AutocompleteInput";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Calendario from "../components/CalendarioFormCreate";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getFormDateCreate, postDataCreate } from "../API";
+import { useAtomValue } from "jotai";
+import citaSeleccionada from "../context/CitaSeleccionada";
+import { useNavigate } from "react-router";
 
 const PageCreateDate = () => {
+  const navigate = useNavigate();
+  const valorCitaSeleccionada = useAtomValue(citaSeleccionada);
+  const [dataCita, setDataCita] = useState(null);
+  const [idUser, setIdUser] = useState(null);
+  const [timeUser, setTimeUser] = useState(null);
+  const [resetTrigger, setResetTrigger] = useState(false);
+
+  const {
+    data: dataForm,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["dataForm"],
+    queryFn: async () => {
+      return getFormDateCreate();
+    },
+  });
+
+  useEffect(() => {
+    function convertToCustomFormat(date) {
+      if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return null;
+      }
+
+      return (
+        date.getFullYear() +
+        "-" +
+        String(date.getMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(date.getDate()).padStart(2, "0") +
+        " " +
+        String(date.getHours()).padStart(2, "0") +
+        ":" +
+        String(date.getMinutes()).padStart(2, "0") +
+        ":" +
+        String(date.getSeconds()).padStart(2, "0") +
+        ".000"
+      );
+    }
+
+    if (valorCitaSeleccionada) {
+      const fecha = new Date(valorCitaSeleccionada);
+      setDataCita(convertToCustomFormat(fecha));
+    }
+  }, [valorCitaSeleccionada]);
+
+  const mutation = useMutation({
+    mutationFn: async (data) => {
+      return await postDataCreate(data);
+    },
+    onSuccess: () => {
+      reset();
+      setDataCita(null);
+      setIdUser(null);
+      setTimeUser(null);
+      setResetTrigger(true);
+      navigate("/home");
+    },
+  });
+
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
     setValue,
+    watch,
   } = useForm();
 
-  const [resetTrigger, setResetTrigger] = useState(false);
+  const watchAllFields = watch();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    reset();
-    setResetTrigger(true);
-  };
+  useEffect(() => {
+    if (watchAllFields.userId) {
+      setIdUser(watchAllFields.userId);
+    }
+    if (watchAllFields.time) {
+      setTimeUser(watchAllFields.time);
+    }
+  }, [watchAllFields]);
 
-  const clientes = [
-    { id: 1, name: "Pablo" },
-    { id: 2, name: "Pepe" },
-    { id: 3, name: "Juan" },
-    { id: 4, name: "María" },
-    { id: 5, name: "Carlos" },
-    { id: 6, name: "Ana" },
-    { id: 7, name: "Luis" },
-    { id: 8, name: "Sofía" },
-    { id: 9, name: "Miguel" },
-    { id: 10, name: "Lucía" }
-  ];
-  
-  const users = [
-    { name: "Natalia", id: "aweda" },
-    { name: "Antonio", id: "aweqweda" },
-    { name: "Dani", id: "aweqwwda" },
-  ];
   const times = [
     { name: "10 minutos", id: 10 },
     { name: "20 minutos", id: 20 },
@@ -53,9 +105,25 @@ const PageCreateDate = () => {
     { name: "2 horas", id: 120 },
   ];
 
+  const onSubmit = (data) => {
+    if (!dataCita) {
+      return alert("Seleccione una cita");
+    }
+
+    mutation.mutate({ ...data, citaDate: dataCita });
+  };
+
+  if (isLoading) {
+    return <h1>Cargando...</h1>;
+  }
+
+  if (error) {
+    return <h1>Ha habido un error, lo sentimos. Recargue la página.</h1>;
+  }
+
   return (
     <>
-      <div className="flex justify-center">
+      <div className="flex justify-center w-6xl mx-auto">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="flex flex-col items-center justify-center gap-10 w-auto bg-gray-100 mt-10 p-5 rounded-lg shadow-lg"
@@ -63,24 +131,26 @@ const PageCreateDate = () => {
           <div className="flex flex-row items-start justify-center gap-10 w-auto">
             <AutocompleteInput
               label="Buscar Cliente"
-              id="cliente"
-              placeholder="Escribe un nombre..."
+              id="customerId"
+              placeholder="Nombre o teléfono"
               textError="Seleccione un cliente"
               register={register}
               setValue={setValue}
-              error={errors.cliente}
-              options={clientes}
+              error={errors.customerId}
+              options={dataForm.dataCustomers}
               resetTrigger={resetTrigger}
             />
+
             <InputForm
               label="Trabajador"
               textError="Seleccione al trabajador"
               type="select"
-              id="surname"
-              {...register("surname", { required: true })}
-              error={errors.surname}
-              options={users}
+              id="userId"
+              {...register("userId", { required: true })}
+              error={errors.userId}
+              options={dataForm.dataUsers}
             />
+
             <InputForm
               label="Tiempo de la sesión"
               textError="Seleccione el tiempo"
@@ -91,31 +161,44 @@ const PageCreateDate = () => {
               options={times}
             />
           </div>
-          <div className="flex flex-row items-start justify-center gap-10 w-auto">
-           
 
+          <div className="flex flex-row items-start justify-center gap-10 w-auto">
             <InputForm
               label="Observaciones de la cita"
-              placeholder="Esciba observaciones..."
+              placeholder="Escriba observaciones..."
               type="text"
               id="dateObservation"
               {...register("dateObservation")}
             />
+
             <InputForm
               label="Avanzar cita"
-              textAltInput="Si hay posibilidad se avanzara la cita"
+              textAltInput="Se avisará si hay posibilidad de avanzar la cita"
               type="checkbox"
               id="dateAdvance"
               {...register("dateAdvance")}
             />
           </div>
 
-          <button
-            type="submit"
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-          >
-            Enviar
-          </button>
+          <div className="flex flex-row items-start justify-center gap-10 w-auto">
+            <Calendario userId={idUser} timeSession={timeUser} />
+          </div>
+
+          {dataCita ? (
+            <button
+              type="submit"
+              className="bg-blue-500 text-white px-4 py-2 rounded"
+            >
+              Crear
+            </button>
+          ) : (
+            <button
+              disabled
+              className="bg-blue-500/50 text-white px-4 py-2 rounded"
+            >
+              Crear
+            </button>
+          )}
         </form>
       </div>
     </>

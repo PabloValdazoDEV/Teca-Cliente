@@ -3,7 +3,7 @@ import { Outlet, NavLink } from "react-router";
 const pages = [
   { title: "Home", path: "/home" },
   { title: "Clientes", path: "/customers" },
-  { title: "Calendario", path: "/date" },
+  { title: "Crear cita", path: "/date/create" },
 ];
 
 const Navbar = () => {

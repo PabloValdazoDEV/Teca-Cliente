@@ -33,14 +33,17 @@ const AutocompleteInput = ({
       return;
     }
 
+    // const sugerencias = options.filter((option) => String(option.fullName).toLowerCase().includes(String(inputValue).toLowerCase())).slice(0, 5);
     const sugerencias = options
-      .filter(
-        (option) =>
-          String(option.name)
-            .toLowerCase()
-            .includes(String(inputValue).toLowerCase()) 
-      )
-      .slice(0, 5);
+  .filter((option) => {
+    const input = String(inputValue).toLowerCase();
+    const fullName = String(option.fullName).toLowerCase();
+    const phoneNumber = String(option.phone || "").toLowerCase(); // Si no hay número, lo deja vacío
+
+    return fullName.includes(input) || phoneNumber.includes(input);
+  })
+  .slice(0, 5);
+
 
     setFilteredOptions(sugerencias);
     setShowSuggestions(sugerencias.length > 0);
@@ -79,20 +82,23 @@ const AutocompleteInput = ({
 
       {showSuggestions && (
         <ul className="absolute top-full left-0 w-full border border-gray-300 bg-white rounded-md mt-1 shadow-md max-h-40 overflow-y-auto z-10">
-          {filteredOptions.map((sugerencia, index) => (
-            <li
-              key={index}
-              onClick={() => {
-                setInputValue(sugerencia.name);
-                setValue(id, sugerencia.id); // Establece el valor en react-hook-form
-                setIdCliente(sugerencia.id)
-                setShowSuggestions(false);
-              }}
-              className="p-2 cursor-pointer hover:bg-gray-100 text-sm text-left"
-            >
-              {sugerencia.name}
-            </li>
-          ))}
+          {filteredOptions.map((sugerencia, index) => {
+            const phoneString = String(sugerencia.phone[0])
+            return (
+              <li
+                key={index}
+                onClick={() => {
+                  setInputValue(`${sugerencia.fullName} - ${phoneString}`);
+                  setValue(id, sugerencia.id); 
+                  setIdCliente(sugerencia.id)
+                  setShowSuggestions(false);
+                }}
+                className="p-2 cursor-pointer hover:bg-gray-100 text-sm text-left"
+              >
+                {sugerencia.fullName} - {phoneString}
+              </li>
+            )
+          })}
         </ul>
       )}
       {error && <span className="text-red-400 text-xs">{textError}</span>}
