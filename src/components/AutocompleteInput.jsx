@@ -10,6 +10,7 @@ const AutocompleteInput = ({
   setValue,
   options,
   resetTrigger,
+  disabled
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [filteredOptions, setFilteredOptions] = useState([]);
@@ -38,7 +39,7 @@ const AutocompleteInput = ({
   .filter((option) => {
     const input = String(inputValue).toLowerCase();
     const fullName = String(option.fullName).toLowerCase();
-    const phoneNumber = String(option.phone || "").toLowerCase(); // Si no hay número, lo deja vacío
+    const phoneNumber = String(option.phone || "").toLowerCase(); 
 
     return fullName.includes(input) || phoneNumber.includes(input);
   })
@@ -65,7 +66,7 @@ const AutocompleteInput = ({
 
   return (
     <div
-      className="flex flex-col justify-center items-start gap-2 relative w-56"
+      className="flex flex-col justify-center items-start gap-2 relative w-full"
       ref={inputRef}
     >
       <label htmlFor={id} className="text-sm font-medium">{label}</label>
@@ -76,8 +77,9 @@ const AutocompleteInput = ({
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         placeholder={placeholder}
-        className="w-56 bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400"
+        className="w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400"
         onBlur={viewValue}
+        disabled={disabled}
       />
 
       {showSuggestions && (
@@ -89,7 +91,11 @@ const AutocompleteInput = ({
                 key={index}
                 onClick={() => {
                   setInputValue(`${sugerencia.fullName} - ${phoneString}`);
-                  setValue(id, sugerencia.id); 
+                  setValue(id, {
+                    id: sugerencia.id,
+                    phone: `+34${sugerencia.phone[0]}`,
+                    name: sugerencia.fullName
+                  });
                   setIdCliente(sugerencia.id)
                   setShowSuggestions(false);
                 }}

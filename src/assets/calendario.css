@@ -2,7 +2,7 @@
     background-color: white !important;
     color: black !important;
     width: 1000px;
-    padding: 2rem;
+    /* padding: 2rem; */
     height: auto;
   }
   
@@ -25,5 +25,9 @@
 
   }
 
+  .fc-timegrid-slot {
+    height: 20px !important; /* Ajusta este valor para reducir el tamaño */
+  }
+  
 
   

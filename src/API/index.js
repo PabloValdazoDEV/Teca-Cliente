@@ -74,6 +74,7 @@ const getFormDateUser = async (id) => {
 };
 
 const postDataCreate = async (data) => {
+  console.log(data)
   try {
     await api.post("/citas/dateCreate", data);
   } catch (error) {
@@ -89,6 +90,35 @@ const deleteDate = async (id) => {
   }
 };
 
+const sendSms = async (phone, message) => {
+
+  try {
+    const response = await api.post('/citas/sendCommunication', {
+      to: `+34${phone}`,
+      message
+    });
+    setStatus('Mensaje enviado con éxito!');
+    console.log(response.data);
+  } catch (error) {
+    setStatus('Error enviando el mensaje');
+    console.error(error);
+  }
+};
+
+const postDataEdit = async (data) => {
+  console.log(data)
+  await api.post("/citas/update", data)
+}
+
+const getAllUser = async () => {
+  try {
+    const data = await api.get("/citas/users")
+    return data.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 export {
   GetAllUsers,
   tryLogin,
@@ -99,4 +129,7 @@ export {
   getFormDateUser,
   postDataCreate,
   deleteDate,
+  sendSms,
+  postDataEdit,
+  getAllUser
 };

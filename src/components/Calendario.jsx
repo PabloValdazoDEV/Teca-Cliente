@@ -5,18 +5,19 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { deleteDate, getFormDateUser } from "../API";
+import PageEditDate from "../page/PageEditDate";
+import { useAtom } from "jotai";
+import modalEditDate from "../context/ModalEditDate";
 
-const CalendarioVista = ({ userId }) => {
+const CalendarioVista = ({ userId, userName }) => {
   const queryClient = useQueryClient();
+  const [showModalEdit, setShowModalEdit] = useAtom(modalEditDate);
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showModalDelete, setShowModalDelete] = useState(false);
 
-  const {
-    data: citasDisponiblesEmpleado,
-    error,
-  } = useQuery({
+  const { data: citasDisponiblesEmpleado, error } = useQuery({
     queryKey: ["citasDisponible", userId],
     queryFn: async () => {
       if (userId) {
@@ -28,27 +29,25 @@ const CalendarioVista = ({ userId }) => {
   });
 
   const mutation = useMutation({
-    mutationFn:  (data) => {
+    mutationFn: (data) => {
       deleteDate(data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["citasDisponible", userId]);
-      console.log("cita invaldiad")
+      queryClient.invalidateQueries();
     },
   });
-  
 
   useEffect(() => {
     if (userId) {
       // console.log("Refetching data for userId:", userId);
-      queryClient.invalidateQueries(["citasDisponible", userId]);
+      queryClient.invalidateQueries();
     }
-  }, [userId, queryClient]);
+  }, [userId]);
 
   const businessHours = [
     { daysOfWeek: [1, 2, 3, 4], startTime: "10:00", endTime: "14:00" },
-    { daysOfWeek: [1, 2, 3, 4], startTime: "16:00", endTime: "20:00" },
-    { daysOfWeek: [5], startTime: "10:00", endTime: "14:00" },
+    { daysOfWeek: [1, 2, 3, 4], startTime: "16:00", endTime: "22:00" },
+    { daysOfWeek: [5], startTime: "10:00", endTime: "16:00" },
   ];
 
   const getOccupiedSlots = (appointments) => {
@@ -68,6 +67,9 @@ const CalendarioVista = ({ userId }) => {
           dateObservation: appointment.dateObservation || "Sin observaciones",
           advanceDate: appointment.advance_date === "TRUE" ? "Sí" : "No",
           color: appointment.advance_date === "TRUE" ? "#3788d8" : "#03D492",
+          phone: appointment.customer.phone,
+          customer: appointment.customer,
+          user: userId,
         };
       });
   };
@@ -87,6 +89,10 @@ const CalendarioVista = ({ userId }) => {
     }
   };
 
+  useEffect(() => {
+    setShowModal(false);
+  }, [showModalEdit]);
+
   return (
     <div className="relative bg-white p-5 rounded-lg shadow-lg">
       <FullCalendar
@@ -95,7 +101,7 @@ const CalendarioVista = ({ userId }) => {
         initialView="timeGridWeek"
         slotDuration="00:30:00"
         slotMinTime="10:00:00"
-        slotMaxTime="20:00:00"
+        slotMaxTime="22:00:00"
         hiddenDays={[0, 6]}
         businessHours={businessHours}
         height="auto"
@@ -149,10 +155,9 @@ const CalendarioVista = ({ userId }) => {
         }}
       />
 
-      {/* ✅ Modal para ver detalles */}
       {showModal && selectedEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-5 rounded-lg w-96">
+          <div className="bg-white p-5 rounded-lg w-1/3">
             <h2 className="text-xl font-bold mb-3">Detalles de la cita</h2>
             <p>
               <strong>Paciente:</strong> {selectedEvent.patientName}
@@ -169,6 +174,14 @@ const CalendarioVista = ({ userId }) => {
             <p>
               <strong>Avanzar cita:</strong> {selectedEvent.advanceDate}
             </p>
+            {selectedEvent.phone.map((phone, index) => {
+              return (
+                <p key={index}>
+                  <strong>Teléfono {index + 1}:</strong> {phone}
+                </p>
+              );
+            })}
+
             <div className="flex justify-center gap-5 mt-4">
               <button
                 onClick={() => {
@@ -185,12 +198,23 @@ const CalendarioVista = ({ userId }) => {
               >
                 Cerrar
               </button>
+              <button
+                onClick={() => console.log(selectedEvent)}
+                className="bg-emerald-500 text-white px-4 py-2 rounded"
+              >
+                Ver fichas
+              </button>
+              <button
+                onClick={() => setShowModalEdit(true)}
+                className="bg-blue-500 text-white px-4 py-2 rounded"
+              >
+                Editar
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ✅ Modal para confirmar eliminación */}
       {showModalDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-5 rounded-lg w-96">
@@ -212,6 +236,7 @@ const CalendarioVista = ({ userId }) => {
                 onClick={() => {
                   mutation.mutate(selectedEvent.id);
                   setShowModalDelete(false);
+                  queryClient.invalidateQueries({ queryKey: ["citasDisponible", userId] });
                 }}
                 className="bg-red-500 text-white px-4 py-2 rounded"
               >
@@ -221,10 +246,23 @@ const CalendarioVista = ({ userId }) => {
           </div>
         </div>
       )}
+
+      {showModalEdit && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <PageEditDate
+            customer={selectedEvent.customer}
+            date={selectedEvent.start}
+            time={selectedEvent.time}
+            observation={selectedEvent.dateObservation}
+            advance={selectedEvent.advanceDate}
+            userId={userId}
+            userName={userName}
+            dateId={selectedEvent.id}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
 export default CalendarioVista;
-
-

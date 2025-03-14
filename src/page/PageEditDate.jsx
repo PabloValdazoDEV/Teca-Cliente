@@ -1,24 +1,36 @@
 import { useForm } from "react-hook-form";
 import InputForm from "../components/InputForm";
-import AutocompleteInput from "../components/AutocompleteInput";
 import { useEffect, useState } from "react";
 import Calendario from "../components/CalendarioFormCreate";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getFormDateCreate, postDataCreate } from "../API";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getFormDateCreate, postDataEdit } from "../API";
 import { useAtom } from "jotai";
 import citaSeleccionada from "../context/CitaSeleccionada";
 import { useNavigate } from "react-router";
+import modalEditDate from "../context/ModalEditDate";
 
-const PageCreateDate = () => {
+const PageEditDate = ({
+  customer,
+  time,
+  observation,
+  advance,
+  userId,
+  userName,
+  dateId,
+  date,
+}) => {
+  const queryClient = useQueryClient();
+
+  const [showModalEdit, setShowModalEdit] = useAtom(modalEditDate);
   const navigate = useNavigate();
   const [valorCitaSeleccionada, setValorCitaSeleccionada] =
     useAtom(citaSeleccionada);
-  const [dataCita, setDataCita] = useState(null);
-  const [idUser, setIdUser] = useState(null);
-  const [timeUser, setTimeUser] = useState(null);
-  const [resetTrigger, setResetTrigger] = useState(false);
-  const [showCalenda, setShowCalenda] = useState(false);
 
+  const [dataCita, setDataCita] = useState(valorCitaSeleccionada);
+  const [idUser, setIdUser] = useState(userId);
+  const [timeUser, setTimeUser] = useState(time);
+  const [showCalenda, setShowCalenda] = useState(false);
+  const [advanceValue, setAdvanceValue] = useState(advance || "No"); 
   const {
     data: dataForm,
     isLoading,
@@ -34,7 +46,7 @@ const PageCreateDate = () => {
     queryKey: ["citasDisponible", idUser],
     queryFn: async () => {
       if (idUser) {
-        setCitaSeleccionadaContext(null)
+        setCitaSeleccionadaContext(null);
         return getFormDateUser(idUser);
       }
       return [];
@@ -84,13 +96,19 @@ const PageCreateDate = () => {
         ".000"
       );
     };
+    if(!valorCitaSeleccionada){
+      const fecha = new Date(date);
+      setDataCita(convertToCustomFormat(fecha));
+      setShowCalenda(true);
+      return
+    }
 
     if (valorCitaSeleccionada) {
       const fecha = new Date(valorCitaSeleccionada);
       setDataCita(convertToCustomFormat(fecha));
-      setShowCalenda(true)
+      setShowCalenda(true);
     }
-  }, [valorCitaSeleccionada]);
+  }, [valorCitaSeleccionada, date]);
 
   function formatCustomDate(dateString) {
     const date = new Date(dateString.replace(" ", "T"));
@@ -110,17 +128,17 @@ const PageCreateDate = () => {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      console.log("data", data)
-      return postDataCreate(data);
+      console.log("edit",data);
+      return await postDataEdit(data);
     },
     onSuccess: () => {
       reset();
       setDataCita(null);
       setIdUser(null);
       setTimeUser(null);
-      setResetTrigger(true);
-      setShowCalenda(false)
-      setValorCitaSeleccionada(null)
+      setShowCalenda(false);
+      setValorCitaSeleccionada(null);
+      queryClient.invalidateQueries();
       navigate("/home");
     },
   });
@@ -152,8 +170,6 @@ const PageCreateDate = () => {
   }, [watchUserId, watchTime]);
 
   useEffect(() => {
-
-
     if (watchAllFields.hour && watchAllFields.date) {
       setValorCitaSeleccionada(
         convertToCustomFormat(
@@ -161,8 +177,7 @@ const PageCreateDate = () => {
         )
       );
       setShowCalenda(true);
-      setValue('hour', "")
-      
+      setValue("hour", "");
     }
   }, [watchHour, watchDate]);
 
@@ -182,34 +197,30 @@ const PageCreateDate = () => {
   ];
 
   const onSubmit = (data) => {
-    // const data2 = {
-    //   ...data,
-    //   extra: convertToCustomFormat(new Date(`${data.date} ${data.hour}`)),
-    //   citaDate: dataCita,
-    // };
-    // console.log(data2);
+    // console.log(data);
     if (!dataCita) {
       return alert("Seleccione una cita");
     }
-    console.log("onSubmit", data)
+
     mutation.mutate({
       ...data,
       citaDate: dataCita,
       message: `Hola ${
-        removeAccents(data.customer.name).split(" ")[0]
+        removeAccents(customer.fullName).split(" ")[0]
       }, le informamos que tiene cita en el Centro Teca el dia ${removeAccents(
         formatCustomDate(dataCita)
       )}.`,
-      customerId: data.customer.id,
-      // customer: {
-      //   customerName: customer.fullName,
-      //   customerPhone: customer.phone[0],
-      // },
+      customerId: userId,
+      customer: {
+        customerName: customer.fullName,
+        customerPhone: customer.phone[0],
+      },
+      dateId: dateId,
     });
+    setShowModalEdit(false);
   };
 
   const [availableTimes, setAvailableTimes] = useState([]);
-
 
   useEffect(() => {
     const generateAvailableTimes = () => {
@@ -319,6 +330,10 @@ const PageCreateDate = () => {
 
   const isHourSelectEnabled = watchAllFields.date && timeUser && idUser;
 
+  const handleCheckboxChange = (e) => {
+    setAdvanceValue(e.target.checked ? "Sí" : "No");
+  };
+
   if (isLoading) {
     return <h1>Cargando...</h1>;
   }
@@ -359,17 +374,15 @@ const PageCreateDate = () => {
                 Ver Disponibilidad General
               </button>
             )}
-            <AutocompleteInput
+            <InputForm
               label="Buscar Cliente"
+              textError="Seleccione al trabajador"
+              type="text"
               id="customer"
-              placeholder="Nombre o teléfono"
-              textError="Seleccione un cliente"
-              register={register}
-              setValue={setValue}
-              error={errors.customer}
-              options={dataForm.dataCustomers}
-              resetTrigger={resetTrigger}
-              disabled={false}
+              defaultValue={`${customer.fullName} - ${customer.phone[0]}`}
+              // error={errors.userId}
+              // options={dataForm.dataUsers}
+              disabled={true}
             />
 
             <InputForm
@@ -377,6 +390,7 @@ const PageCreateDate = () => {
               textError="Seleccione al trabajador"
               type="select"
               id="userId"
+              defaultValue={userId}
               {...register("userId", { required: true })}
               error={errors.userId}
               options={dataForm.dataUsers}
@@ -387,6 +401,7 @@ const PageCreateDate = () => {
               textError="Seleccione el tiempo"
               type="select"
               id="time"
+              defaultValue={timeUser}
               {...register("time", { required: true })}
               error={errors.time}
               options={times}
@@ -417,6 +432,7 @@ const PageCreateDate = () => {
               label="Observaciones de la cita"
               placeholder="Escriba observaciones..."
               type="text"
+              defaultValue={observation}
               id="dateObservation"
               {...register("dateObservation")}
             />
@@ -427,20 +443,24 @@ const PageCreateDate = () => {
               type="checkbox"
               id="dateAdvance"
               {...register("dateAdvance")}
+              checked={advanceValue === "Sí"}
+              onChange={handleCheckboxChange}
+              // onClick={}
+              // error={errors.dateAdvance}
             />
             {dataCita ? (
               <button
                 type="submit"
                 className="bg-blue-500 text-white px-4 py-2 rounded"
               >
-                Crear cita
+                Editar cita
               </button>
             ) : (
               <button
                 disabled
                 className="bg-blue-500/50 text-white px-4 py-2 rounded"
               >
-                Crear cita
+                Editar cita
               </button>
             )}
           </div>
@@ -448,7 +468,12 @@ const PageCreateDate = () => {
           <div className="flex flex-row items-start justify-center gap-10 w-auto"></div>
 
           <div className="flex flex-row items-start justify-center gap-10 w-full">
-            <Calendario userId={idUser} timeSession={timeUser} />
+            <Calendario
+              userId={idUser}
+              timeSession={timeUser}
+              selectedDateId={dateId}
+              date
+            />
           </div>
         </form>
       </div>
@@ -456,4 +481,4 @@ const PageCreateDate = () => {
   );
 };
 
-export default PageCreateDate;
+export default PageEditDate;
