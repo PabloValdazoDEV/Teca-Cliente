@@ -3,7 +3,7 @@ import InputForm from "../components/InputForm";
 import { useEffect, useState } from "react";
 import Calendario from "../components/CalendarioFormCreate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getFormDateCreate, postDataEdit } from "../API";
+import { getFormDateCreate, putDataEdit } from "../API";
 import { useAtom } from "jotai";
 import citaSeleccionada from "../context/CitaSeleccionada";
 import { useNavigate } from "react-router";
@@ -18,8 +18,13 @@ const PageEditDate = ({
   userName,
   dateId,
   date,
+  urgentDate,
 }) => {
-  const queryClient = useQueryClient();
+
+  const queryClient = useQueryClient(); // Obtén queryClient desde el contexto
+  
+
+  const dateNow = new Date(Date.now())
 
   const [showModalEdit, setShowModalEdit] = useAtom(modalEditDate);
   const navigate = useNavigate();
@@ -30,7 +35,9 @@ const PageEditDate = ({
   const [idUser, setIdUser] = useState(userId);
   const [timeUser, setTimeUser] = useState(time);
   const [showCalenda, setShowCalenda] = useState(false);
-  const [advanceValue, setAdvanceValue] = useState(advance || "No"); 
+  const [advanceValue, setAdvanceValue] = useState(advance || "No");
+  const [citaUrgenteValue, setCitaUrgenteValue] = useState(urgentDate ? "Sí" : "No");
+  const [modalError, setModalError] = useState(false);
   const {
     data: dataForm,
     isLoading,
@@ -96,11 +103,11 @@ const PageEditDate = ({
         ".000"
       );
     };
-    if(!valorCitaSeleccionada){
+    if (!valorCitaSeleccionada) {
       const fecha = new Date(date);
       setDataCita(convertToCustomFormat(fecha));
       setShowCalenda(true);
-      return
+      return;
     }
 
     if (valorCitaSeleccionada) {
@@ -128,8 +135,7 @@ const PageEditDate = ({
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      console.log("edit",data);
-      return await postDataEdit(data);
+      return await putDataEdit(data);
     },
     onSuccess: () => {
       reset();
@@ -138,8 +144,22 @@ const PageEditDate = ({
       setTimeUser(null);
       setShowCalenda(false);
       setValorCitaSeleccionada(null);
+      setShowModalEdit(false);
       queryClient.invalidateQueries();
-      navigate("/home");
+    },
+    onError: (error) => {
+      if (error.response && error.response.status === 409) {
+        console.log("Ya hay una cita a esa hora. Por favor, elige otra hora.");
+      } else {
+        setModalError(true);
+        console.log("Error en la mutación:", error);
+      }
+      reset();
+      setDataCita(null);
+      setIdUser(null);
+      setTimeUser(null);
+      setShowCalenda(false);
+      setValorCitaSeleccionada(null);
     },
   });
 
@@ -195,7 +215,6 @@ const PageEditDate = ({
     { name: "1 hora 50 minutos", id: 110 },
     { name: "2 horas", id: 120 },
   ];
-
   const onSubmit = (data) => {
     // console.log(data);
     if (!dataCita) {
@@ -210,14 +229,15 @@ const PageEditDate = ({
       }, le informamos que tiene cita en el Centro Teca el dia ${removeAccents(
         formatCustomDate(dataCita)
       )}.`,
-      customerId: userId,
+      customerId: customer.id,
       customer: {
         customerName: customer.fullName,
         customerPhone: customer.phone[0],
       },
       dateId: dateId,
+      urgent_date: citaUrgenteValue == "Sí" ? true : false
     });
-    setShowModalEdit(false);
+    // setShowModalEdit(false);
   };
 
   const [availableTimes, setAvailableTimes] = useState([]);
@@ -225,25 +245,25 @@ const PageEditDate = ({
   useEffect(() => {
     const generateAvailableTimes = () => {
       if (!watchAllFields.date || !timeUser || !citasOcupdasEmpleado) return;
-
+    
       const selectedDate = new Date(watchAllFields.date);
       const dayOfWeek = selectedDate.getDay();
-
+    
       let startHour = 10;
       let endHour = 0;
       let endMinutes = 0;
-
+    
       if (dayOfWeek >= 1 && dayOfWeek <= 4) {
         endHour = 22;
         endMinutes = 0;
       } else if (dayOfWeek === 5) {
-        endHour = 14;
+        endHour = 16;
         endMinutes = 0;
       } else {
         setAvailableTimes([]);
         return;
       }
-
+    
       const horasOcupadasDia = citasOcupdasEmpleado
         .filter((cita) => {
           const formData = new Date(cita.citaDate);
@@ -258,45 +278,46 @@ const PageEditDate = ({
             endHour: new Date(formData.getTime() + cita.time * 60000),
           };
         });
+    
       const startTime = new Date(selectedDate);
-
       const endTime = new Date(selectedDate);
       startTime.setHours(startHour, 0, 0, 0);
       endTime.setHours(endHour, endMinutes, 0, 0);
-
+    
       const times = [];
       const currentTime = new Date(startTime);
-
+    
+      // Generar horas disponibles en incrementos de 5 minutos
       while (currentTime < endTime) {
         const formattedTime = `${String(currentTime.getHours()).padStart(
           2,
           "0"
         )}:${String(currentTime.getMinutes()).padStart(2, "0")}`;
         times.push(formattedTime);
-        currentTime.setMinutes(currentTime.getMinutes() + 15);
+        currentTime.setMinutes(currentTime.getMinutes() + 10); // Incremento de 5 minutos
       }
-
+    
       const availableTimes = times.filter((time) => {
         const [timeHours, timeMinutes] = time.split(":").map(Number);
-
+    
         const sessionTime = new Date(selectedDate);
         sessionTime.setHours(timeHours, timeMinutes, 0, 0);
-
+    
         const endSessionTime = new Date(
           sessionTime.getTime() + timeUser * 60000
         );
-
+    
         if (endSessionTime > endTime) {
           return false;
         }
-
+    
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
           const blockStart = new Date(selectedDate);
           blockStart.setHours(14, 0, 0, 0);
-
+    
           const blockEnd = new Date(selectedDate);
           blockEnd.setHours(16, 0, 0, 0);
-
+    
           if (
             (sessionTime >= blockStart && sessionTime < blockEnd) ||
             (endSessionTime > blockStart && endSessionTime <= blockEnd) ||
@@ -305,12 +326,12 @@ const PageEditDate = ({
             return false;
           }
         }
-
+    
         const isOverlapping = horasOcupadasDia.some(
           ({ hour, minutes, endHour }) => {
             const citaStart = new Date(selectedDate);
             citaStart.setHours(hour, minutes, 0, 0);
-
+    
             return (
               (sessionTime >= citaStart && sessionTime < endHour) ||
               (endSessionTime > citaStart && endSessionTime <= endHour) ||
@@ -318,10 +339,10 @@ const PageEditDate = ({
             );
           }
         );
-
+    
         return !isOverlapping;
       });
-
+    
       setAvailableTimes(availableTimes);
     };
 
@@ -331,7 +352,12 @@ const PageEditDate = ({
   const isHourSelectEnabled = watchAllFields.date && timeUser && idUser;
 
   const handleCheckboxChange = (e) => {
-    setAdvanceValue(e.target.checked ? "Sí" : "No");
+    if (e.target.id === "dateAdvance") {
+      setAdvanceValue(e.target.checked ? "Sí" : "No");
+    }
+    if (e.target.id === "urgent_date") {
+      setCitaUrgenteValue(e.target.checked ? "Sí" : "No");
+    }
   };
 
   if (isLoading) {
@@ -394,6 +420,7 @@ const PageEditDate = ({
               {...register("userId", { required: true })}
               error={errors.userId}
               options={dataForm.dataUsers}
+              disabled={date < dateNow}
             />
 
             <InputForm
@@ -405,14 +432,16 @@ const PageEditDate = ({
               {...register("time", { required: true })}
               error={errors.time}
               options={times}
+              disabled={date < dateNow}
             />
             <div className="flex flex-row items-end gap-5 w-full">
-              <InputForm
+              <InputForm              
                 label="Fecha preferida"
                 placeholder="Escriba observaciones..."
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
                 id="date"
+                disabled={date < dateNow}
                 {...register("date")}
               />
               <InputForm
@@ -425,7 +454,7 @@ const PageEditDate = ({
                   id: time,
                 }))}
                 error={errors.hour}
-                disabled={!isHourSelectEnabled}
+                disabled={!isHourSelectEnabled && date < dateNow}
               />
             </div>
             <InputForm
@@ -437,32 +466,44 @@ const PageEditDate = ({
               {...register("dateObservation")}
             />
 
-            <InputForm
-              label="Avanzar cita"
-              textAltInput="Se avisará si hay posibilidad de avanzar la cita"
-              type="checkbox"
-              id="dateAdvance"
-              {...register("dateAdvance")}
-              checked={advanceValue === "Sí"}
-              onChange={handleCheckboxChange}
-              // onClick={}
-              // error={errors.dateAdvance}
-            />
-            {dataCita ? (
+            <div className="flex flex-row items-end gap-5 w-full">
+              <InputForm
+                label="Avanzar cita"
+                type="checkbox"
+                id="dateAdvance"
+                {...register("dateAdvance")}
+                checked={advanceValue === "Sí"}
+                onChange={handleCheckboxChange}
+                disabled={date < dateNow}
+              />
+              <InputForm
+                label="Cita Urgente"
+                type="checkbox"
+                id="urgent_date"
+                {...register("urgent_date")}
+                checked={citaUrgenteValue === "Sí"}
+                onChange={handleCheckboxChange}
+                disabled={date < dateNow}
+              />
+            </div>
+            <div className="flex flex-row items-end justify-between gap-5 w-full">
               <button
                 type="submit"
                 className="bg-blue-500 text-white px-4 py-2 rounded"
               >
-                Editar cita
+                Guardar cambios
               </button>
-            ) : (
+
               <button
-                disabled
-                className="bg-blue-500/50 text-white px-4 py-2 rounded"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowModalEdit(false);
+                }}
+                className="bg-gray-500 text-white px-4 py-2 rounded"
               >
-                Editar cita
+                Cerrar
               </button>
-            )}
+            </div>
           </div>
 
           <div className="flex flex-row items-start justify-center gap-10 w-auto"></div>
@@ -473,8 +514,23 @@ const PageEditDate = ({
               timeSession={timeUser}
               selectedDateId={dateId}
               date
+              dateDetails={date}
+              dateBefore={date < dateNow}
             />
           </div>
+          {modalError && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white p-5 rounded-lg w-96">
+                <h2 className="text-xl font-bold mb-3">Error al editar la cita</h2>
+                <button
+                    onClick={() => setModalError(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded"
+                  >
+                    Cerrar ventana
+                  </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </>

@@ -16,6 +16,7 @@ const CalendarioVista = ({ userId, userName }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showModalDelete, setShowModalDelete] = useState(false);
+  const [showAvailability, setShowAvailability] = useState(false);
 
   const { data: citasDisponiblesEmpleado, error } = useQuery({
     queryKey: ["citasDisponible", userId],
@@ -33,21 +34,21 @@ const CalendarioVista = ({ userId, userName }) => {
       deleteDate(data);
     },
     onSuccess: () => {
+      console.log("Cita eliminada")
       queryClient.invalidateQueries();
     },
   });
 
   useEffect(() => {
     if (userId) {
-      // console.log("Refetching data for userId:", userId);
       queryClient.invalidateQueries();
     }
   }, [userId]);
 
   const businessHours = [
-    { daysOfWeek: [1, 2, 3, 4], startTime: "10:00", endTime: "14:00" },
+    { daysOfWeek: [1, 2, 3, 4], startTime: "10:00", endTime: "14:01" },
     { daysOfWeek: [1, 2, 3, 4], startTime: "16:00", endTime: "22:00" },
-    { daysOfWeek: [5], startTime: "10:00", endTime: "16:00" },
+    { daysOfWeek: [5], startTime: "10:00", endTime: "16:01" },
   ];
 
   const getOccupiedSlots = (appointments) => {
@@ -66,16 +67,18 @@ const CalendarioVista = ({ userId, userName }) => {
           time: appointment.time,
           dateObservation: appointment.dateObservation || "Sin observaciones",
           advanceDate: appointment.advance_date === "TRUE" ? "Sí" : "No",
-          color: appointment.advance_date === "TRUE" ? "#3788d8" : "#03D492",
+          color: appointment.urgent_date ? "#ff8000" : appointment.advance_date === "TRUE" ? "#3788d8" : "#03D492",
           phone: appointment.customer.phone,
           customer: appointment.customer,
           user: userId,
+          urgent_date: appointment.urgent_date
         };
       });
   };
 
   const occupiedSlots = useMemo(() => {
     if (citasDisponiblesEmpleado) {
+      setShowAvailability(true)
       return getOccupiedSlots(citasDisponiblesEmpleado);
     }
     return [];
@@ -95,6 +98,9 @@ const CalendarioVista = ({ userId, userName }) => {
 
   return (
     <div className="relative bg-white p-5 rounded-lg shadow-lg">
+       {!showAvailability && (
+        <div className="absolute inset-0 bg-white/90 flex rounded-lg items-center justify-center z-50"></div>
+      )}
       <FullCalendar
         locale="es"
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -258,6 +264,7 @@ const CalendarioVista = ({ userId, userName }) => {
             userId={userId}
             userName={userName}
             dateId={selectedEvent.id}
+            urgentDate={selectedEvent.urgent_date}
           />
         </div>
       )}

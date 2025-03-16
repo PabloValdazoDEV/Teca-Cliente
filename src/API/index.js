@@ -74,11 +74,12 @@ const getFormDateUser = async (id) => {
 };
 
 const postDataCreate = async (data) => {
-  console.log(data)
   try {
-    await api.post("/citas/dateCreate", data);
+  const response = await api.post("/citas/dateCreate", data);
+    return response.data;
   } catch (error) {
-    console.error(error);
+    console.error("Error en putDataEdit:", error);
+    throw error;
   }
 };
 
@@ -102,13 +103,19 @@ const sendSms = async (phone, message) => {
   } catch (error) {
     setStatus('Error enviando el mensaje');
     console.error(error);
+    return { error: error.response?.data?.message || error.message }
   }
 };
 
-const postDataEdit = async (data) => {
-  console.log(data)
-  await api.post("/citas/update", data)
-}
+const putDataEdit = async (data) => {
+  try {
+    const response = await api.put("/citas/update", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error en putDataEdit:", error);
+    throw error;
+  }
+};
 
 const getAllUser = async () => {
   try {
@@ -116,6 +123,7 @@ const getAllUser = async () => {
     return data.data
   } catch (error) {
     console.error(error)
+    return { error: error.response?.data?.message || error.message }
   }
 }
 
@@ -130,6 +138,6 @@ export {
   postDataCreate,
   deleteDate,
   sendSms,
-  postDataEdit,
+  putDataEdit,
   getAllUser
 };

@@ -18,6 +18,9 @@ const PageCreateDate = () => {
   const [timeUser, setTimeUser] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(false);
   const [showCalenda, setShowCalenda] = useState(false);
+  const [advanceValue, setAdvanceValue] = useState("No");
+  const [citaUrgenteValue, setCitaUrgenteValue] = useState(false);
+  const [modalError, setModalError] = useState(false);
 
   const {
     data: dataForm,
@@ -34,7 +37,7 @@ const PageCreateDate = () => {
     queryKey: ["citasDisponible", idUser],
     queryFn: async () => {
       if (idUser) {
-        setCitaSeleccionadaContext(null)
+        setCitaSeleccionadaContext(null);
         return getFormDateUser(idUser);
       }
       return [];
@@ -88,7 +91,7 @@ const PageCreateDate = () => {
     if (valorCitaSeleccionada) {
       const fecha = new Date(valorCitaSeleccionada);
       setDataCita(convertToCustomFormat(fecha));
-      setShowCalenda(true)
+      setShowCalenda(true);
     }
   }, [valorCitaSeleccionada]);
 
@@ -110,7 +113,6 @@ const PageCreateDate = () => {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      console.log("data", data)
       return postDataCreate(data);
     },
     onSuccess: () => {
@@ -119,9 +121,21 @@ const PageCreateDate = () => {
       setIdUser(null);
       setTimeUser(null);
       setResetTrigger(true);
-      setShowCalenda(false)
-      setValorCitaSeleccionada(null)
+      setShowCalenda(false);
+      setValorCitaSeleccionada(null);
       navigate("/home");
+    },
+    onError: () => {
+      setModalError(true)
+      console.log("error")
+      // reset();
+      // setDataCita(null);
+      // setIdUser(null);
+      // setTimeUser(null);
+      // setResetTrigger(true);
+      // setShowCalenda(false);
+      // setValorCitaSeleccionada(null);
+      // queryClient.invalidateQueries();
     },
   });
 
@@ -152,8 +166,6 @@ const PageCreateDate = () => {
   }, [watchUserId, watchTime]);
 
   useEffect(() => {
-
-
     if (watchAllFields.hour && watchAllFields.date) {
       setValorCitaSeleccionada(
         convertToCustomFormat(
@@ -161,8 +173,7 @@ const PageCreateDate = () => {
         )
       );
       setShowCalenda(true);
-      setValue('hour', "")
-      
+      setValue("hour", "");
     }
   }, [watchHour, watchDate]);
 
@@ -182,16 +193,9 @@ const PageCreateDate = () => {
   ];
 
   const onSubmit = (data) => {
-    // const data2 = {
-    //   ...data,
-    //   extra: convertToCustomFormat(new Date(`${data.date} ${data.hour}`)),
-    //   citaDate: dataCita,
-    // };
-    // console.log(data2);
     if (!dataCita) {
       return alert("Seleccione una cita");
     }
-    console.log("onSubmit", data)
     mutation.mutate({
       ...data,
       citaDate: dataCita,
@@ -210,7 +214,6 @@ const PageCreateDate = () => {
 
   const [availableTimes, setAvailableTimes] = useState([]);
 
-
   useEffect(() => {
     const generateAvailableTimes = () => {
       if (!watchAllFields.date || !timeUser || !citasOcupdasEmpleado) return;
@@ -226,7 +229,7 @@ const PageCreateDate = () => {
         endHour = 22;
         endMinutes = 0;
       } else if (dayOfWeek === 5) {
-        endHour = 14;
+        endHour = 16;
         endMinutes = 0;
       } else {
         setAvailableTimes([]);
@@ -262,7 +265,7 @@ const PageCreateDate = () => {
           "0"
         )}:${String(currentTime.getMinutes()).padStart(2, "0")}`;
         times.push(formattedTime);
-        currentTime.setMinutes(currentTime.getMinutes() + 15);
+        currentTime.setMinutes(currentTime.getMinutes() + 10);
       }
 
       const availableTimes = times.filter((time) => {
@@ -318,6 +321,15 @@ const PageCreateDate = () => {
   }, [watchAllFields.date, timeUser, citasOcupdasEmpleado]);
 
   const isHourSelectEnabled = watchAllFields.date && timeUser && idUser;
+
+  const handleCheckboxChange = (e) => {
+    if (e.target.id === "dateAdvance") {
+      setAdvanceValue(e.target.checked ? "Sí" : "No");
+    }
+    if (e.target.id === "urgent_date") {
+      setCitaUrgenteValue(e.target.checked);
+    }
+  };
 
   if (isLoading) {
     return <h1>Cargando...</h1>;
@@ -420,14 +432,24 @@ const PageCreateDate = () => {
               id="dateObservation"
               {...register("dateObservation")}
             />
-
-            <InputForm
-              label="Avanzar cita"
-              textAltInput="Se avisará si hay posibilidad de avanzar la cita"
-              type="checkbox"
-              id="dateAdvance"
-              {...register("dateAdvance")}
-            />
+            <div className="flex flex-row items-end gap-5 w-full">
+              <InputForm
+                label="Avanzar cita"
+                type="checkbox"
+                id="dateAdvance"
+                {...register("dateAdvance")}
+                checked={advanceValue === "Sí"}
+                onChange={handleCheckboxChange}
+              />
+              <InputForm
+                label="Cita Urgente"
+                type="checkbox"
+                id="urgent_date"
+                {...register("urgent_date")}
+                checked={citaUrgenteValue}
+                onChange={handleCheckboxChange}
+              />
+            </div>
             {dataCita ? (
               <button
                 type="submit"
@@ -450,6 +472,19 @@ const PageCreateDate = () => {
           <div className="flex flex-row items-start justify-center gap-10 w-full">
             <Calendario userId={idUser} timeSession={timeUser} />
           </div>
+          {modalError && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white p-5 rounded-lg w-96">
+                <h2 className="text-xl font-bold mb-3">Error al editar la cita</h2>
+                <button
+                    onClick={() => setModalError(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded"
+                  >
+                    Cerrar ventana
+                  </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
     </>

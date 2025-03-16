@@ -8,7 +8,14 @@ import { getFormDateUser } from "../API";
 import { useAtom } from "jotai";
 import citaSeleccionada from "../context/CitaSeleccionada";
 
-const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
+const Calendario = ({
+  userId,
+  timeSession,
+  selectedDateId,
+  date,
+  dateDetails,
+  dateBefore,
+}) => {
   const [citaSeleccionadaContext, setCitaSeleccionadaContext] =
     useAtom(citaSeleccionada);
   const [selectedCita, setSelectedCita] = useState(selectedDateId);
@@ -35,11 +42,11 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
   const businessHours = [
     { daysOfWeek: [1, 2, 3, 4], startTime: "10:00", endTime: "14:01" },
     { daysOfWeek: [1, 2, 3, 4], startTime: "16:00", endTime: "22:00" },
-    { daysOfWeek: [5], startTime: "10:00", endTime: "16:00" },
+    { daysOfWeek: [5], startTime: "10:00", endTime: "16:01" },
   ];
   const getNextAvailableTime = (currentTime) => {
     const limitDate = new Date(currentTime);
-    limitDate.setDate(limitDate.getDate() + 21); // Límite de 3 semanas para evitar el bucle infinito
+    limitDate.setDate(limitDate.getDate() + 21);
 
     while (currentTime < limitDate) {
       const dayOfWeek = currentTime.getDay();
@@ -55,7 +62,6 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
         const blockEnd = new Date(currentTime);
         blockEnd.setHours(...block.endTime.split(":").map(Number), 0, 0);
 
-        // Si está dentro del bloque y hay suficiente espacio para la cita, devolver
         if (
           currentTime >= blockStart &&
           currentTime.getTime() + timeSession * 60 * 1000 <= blockEnd.getTime()
@@ -63,25 +69,20 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
           return currentTime;
         }
 
-        // Si está antes del bloque, avanzar hasta el inicio del bloque
         if (currentTime < blockStart) {
           currentTime = blockStart;
           return currentTime;
         }
       }
 
-      // Si no hay bloques disponibles hoy, pasa al siguiente día
       currentTime.setMinutes(0);
       currentTime.setHours(10);
       currentTime.setDate(currentTime.getDate() + 1);
 
-      // Saltar fines de semana
       while (currentTime.getDay() === 0 || currentTime.getDay() === 6) {
         currentTime.setDate(currentTime.getDate() + 1);
       }
     }
-
-    // Si no hay citas disponibles dentro del límite, devolver null
     return null;
   };
 
@@ -118,7 +119,7 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
             title: "Tu Cita",
             color: "#32CD32",
             isOccupied: false,
-            youCita: true
+            youCita: true,
           };
         }
         return {
@@ -161,14 +162,15 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
         currentTime = new Date(latestEnd);
         continue;
       }
-
-      availableSlots.push({
-        id: `${currentTime.getTime()}`,
-        start: new Date(currentTime),
-        end: new Date(nextTime),
-        title: "Disponible",
-        isOccupied: false,
-      });
+      if (!dateBefore) {
+        availableSlots.push({
+          id: `${currentTime.getTime()}`,
+          start: new Date(currentTime),
+          end: new Date(nextTime),
+          title: "Disponible",
+          isOccupied: false,
+        });
+      }
 
       lastTime = currentTime;
       currentTime = nextTime;
@@ -257,6 +259,19 @@ const Calendario = ({ userId, timeSession, selectedDateId, date }) => {
       });
     }
   }, [citaSeleccionadaContext]);
+
+  useEffect(() => {
+    setSelectedCita(null);
+
+    if (dateDetails && calendarRef.current) {
+      requestAnimationFrame(() => {
+        if (calendarRef.current) {
+          const calendarApi = calendarRef.current.getApi();
+          calendarApi.gotoDate(new Date(dateDetails));
+        }
+      });
+    }
+  }, [dateDetails]);
 
   return (
     <div className="relative bg-white p-5 rounded-lg shadow-lg">
