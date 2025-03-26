@@ -34,7 +34,7 @@ const CalendarioVista = ({ userId, userName }) => {
       deleteDate(data);
     },
     onSuccess: () => {
-      console.log("Cita eliminada")
+      console.log("Cita eliminada");
       queryClient.invalidateQueries();
     },
   });
@@ -67,18 +67,24 @@ const CalendarioVista = ({ userId, userName }) => {
           time: appointment.time,
           dateObservation: appointment.dateObservation || "Sin observaciones",
           advanceDate: appointment.advance_date === "TRUE" ? "Sí" : "No",
-          color: appointment.urgent_date ? "#ff8000" : appointment.advance_date === "TRUE" ? "#3788d8" : "#03D492",
-          phone: appointment.customer.phone,
+          color: appointment.urgent_date
+            ? "#ff8000"
+            : appointment.advance_date === "TRUE"
+            ? "#3788d8"
+            : "#03D492",
+          phone: appointment.customer.phones,
+          // phone: appointment.customer.phones.map((phone) => {if(phone.isCommunicationPhone === true)return `${phone.countryCode} ${phone.phoneNumber}`}),
           customer: appointment.customer,
           user: userId,
-          urgent_date: appointment.urgent_date
+          urgent_date: appointment.urgent_date,
+          price: +appointment.sessionPrice,
         };
       });
   };
 
   const occupiedSlots = useMemo(() => {
     if (citasDisponiblesEmpleado) {
-      setShowAvailability(true)
+      setShowAvailability(true);
       return getOccupiedSlots(citasDisponiblesEmpleado);
     }
     return [];
@@ -98,7 +104,7 @@ const CalendarioVista = ({ userId, userName }) => {
 
   return (
     <div className="relative bg-white p-5 rounded-lg shadow-lg">
-       {!showAvailability && (
+      {!showAvailability && (
         <div className="absolute inset-0 bg-white/90 flex rounded-lg items-center justify-center z-50"></div>
       )}
       <FullCalendar
@@ -163,7 +169,7 @@ const CalendarioVista = ({ userId, userName }) => {
 
       {showModal && selectedEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-5 rounded-lg w-1/3">
+          <div className="bg-white p-5 rounded-lg w-2/5">
             <h2 className="text-xl font-bold mb-3">Detalles de la cita</h2>
             <p>
               <strong>Paciente:</strong> {selectedEvent.patientName}
@@ -174,6 +180,17 @@ const CalendarioVista = ({ userId, userName }) => {
             <p>
               <strong>Duración:</strong> {selectedEvent.time} minutos
             </p>
+            {selectedEvent.price == 0 ? (
+              <p>
+                {" "}
+                <strong>Precio:</strong> No aplicado
+              </p>
+            ) : (
+              <p>
+                {" "}
+                <strong>Precio:</strong> {selectedEvent.price} €{" "}
+              </p>
+            )}
             <p>
               <strong>Observación:</strong> {selectedEvent.dateObservation}
             </p>
@@ -183,7 +200,8 @@ const CalendarioVista = ({ userId, userName }) => {
             {selectedEvent.phone.map((phone, index) => {
               return (
                 <p key={index}>
-                  <strong>Teléfono {index + 1}:</strong> {phone}
+                  <strong>Teléfono {index + 1}:</strong> {phone.countryCode}{" "}
+                  {phone.phoneNumber}
                 </p>
               );
             })}
@@ -194,25 +212,25 @@ const CalendarioVista = ({ userId, userName }) => {
                   setShowModalDelete(true);
                   setShowModal(false);
                 }}
-                className="bg-red-500 text-white px-4 py-2 rounded"
+                className="bg-red-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Eliminar cita
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="bg-gray-500 text-white px-4 py-2 rounded"
+                className="bg-gray-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Cerrar
               </button>
               <button
                 onClick={() => console.log(selectedEvent)}
-                className="bg-emerald-500 text-white px-4 py-2 rounded"
+                className="bg-emerald-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Ver fichas
               </button>
               <button
                 onClick={() => setShowModalEdit(true)}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
+                className="bg-blue-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Editar
               </button>
@@ -234,7 +252,7 @@ const CalendarioVista = ({ userId, userName }) => {
             <div className="flex justify-center gap-5 mt-4">
               <button
                 onClick={() => setShowModalDelete(false)}
-                className="bg-emerald-500 text-white px-4 py-2 rounded"
+                className="bg-gray-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Cancelar
               </button>
@@ -242,9 +260,11 @@ const CalendarioVista = ({ userId, userName }) => {
                 onClick={() => {
                   mutation.mutate(selectedEvent.id);
                   setShowModalDelete(false);
-                  queryClient.invalidateQueries({ queryKey: ["citasDisponible", userId] });
+                  queryClient.invalidateQueries({
+                    queryKey: ["citasDisponible", userId],
+                  });
                 }}
-                className="bg-red-500 text-white px-4 py-2 rounded"
+                className="bg-red-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Eliminar
               </button>
@@ -256,15 +276,16 @@ const CalendarioVista = ({ userId, userName }) => {
       {showModalEdit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <PageEditDate
-            customer={selectedEvent.customer}
-            date={selectedEvent.start}
-            time={selectedEvent.time}
-            observation={selectedEvent.dateObservation}
-            advance={selectedEvent.advanceDate}
+            customer={selectedEvent?.customer}
+            date={selectedEvent?.start}
+            time={selectedEvent?.time}
+            observation={selectedEvent?.dateObservation}
+            price={selectedEvent?.price}
+            advance={selectedEvent?.advanceDate}
             userId={userId}
             userName={userName}
-            dateId={selectedEvent.id}
-            urgentDate={selectedEvent.urgent_date}
+            dateId={selectedEvent?.id}
+            urgentDate={selectedEvent?.urgent_date}
           />
         </div>
       )}

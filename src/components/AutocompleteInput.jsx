@@ -10,7 +10,7 @@ const AutocompleteInput = ({
   setValue,
   options,
   resetTrigger,
-  disabled
+  disabled,
 }) => {
   const [inputValue, setInputValue] = useState("");
   const [filteredOptions, setFilteredOptions] = useState([]);
@@ -18,12 +18,13 @@ const AutocompleteInput = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef(null);
 
+  // console.log(options)
+
   const viewValue = () => {
     if (!inputValue) return;
     options.forEach((option) => {
-
       if (!String(option.id).includes(idCliente)) {
-        setValue(id, "")
+        setValue(id, "");
       }
     });
   };
@@ -33,22 +34,27 @@ const AutocompleteInput = ({
       setShowSuggestions(false);
       return;
     }
-
-    // const sugerencias = options.filter((option) => String(option.fullName).toLowerCase().includes(String(inputValue).toLowerCase())).slice(0, 5);
+  
     const sugerencias = options
-  .filter((option) => {
-    const input = String(inputValue).toLowerCase();
-    const fullName = String(option.fullName).toLowerCase();
-    const phoneNumber = String(option.phone || "").toLowerCase(); 
-
-    return fullName.includes(input) || phoneNumber.includes(input);
-  })
-  .slice(0, 5);
-
-
+      .filter((option) => {
+        const input = String(inputValue).toLowerCase();
+        const fullName = String(option.fullName).toLowerCase();
+  
+        // 🔥 Buscar en todos los números de teléfono (si existen)
+        const phoneMatch = option.phones?.some((phone) =>
+          String(`${phone.countryCode} ${phone.phoneNumber}`)
+            .toLowerCase()
+            .includes(input)
+        );
+  
+        return fullName.includes(input) || phoneMatch;
+      })
+      .slice(0, 5);
+  
     setFilteredOptions(sugerencias);
     setShowSuggestions(sugerencias.length > 0);
-  }, [inputValue, options]); 
+  }, [inputValue, options]);
+  
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -69,7 +75,9 @@ const AutocompleteInput = ({
       className="flex flex-col justify-center items-start gap-2 relative w-full"
       ref={inputRef}
     >
-      <label htmlFor={id} className="text-sm font-medium">{label}</label>
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
       <input
         autoComplete="off"
         id={id}
@@ -85,7 +93,13 @@ const AutocompleteInput = ({
       {showSuggestions && (
         <ul className="absolute top-full left-0 w-full border border-gray-300 bg-white rounded-md mt-1 shadow-md max-h-40 overflow-y-auto z-10">
           {filteredOptions.map((sugerencia, index) => {
-            const phoneString = String(sugerencia.phone[0])
+            const phoneString = sugerencia.phones?.length
+              ? sugerencia.phones
+                .filter((phone) => phone.isCommunicationPhone === true && phone.phoneNumber)
+                .map((phone) => `${phone.countryCode} ${phone.phoneNumber}`)
+                .join(' ')
+            
+              : "Sin teléfono";
             return (
               <li
                 key={index}
@@ -93,17 +107,18 @@ const AutocompleteInput = ({
                   setInputValue(`${sugerencia.fullName} - ${phoneString}`);
                   setValue(id, {
                     id: sugerencia.id,
-                    phone: `+34${sugerencia.phone[0]}`,
+                    phone: `${sugerencia.phones[0]?.countryCode} ${sugerencia.phones[0]?.phoneNumber}`,
                     name: sugerencia.fullName
                   });
-                  setIdCliente(sugerencia.id)
+                  setIdCliente(sugerencia.id);
                   setShowSuggestions(false);
                 }}
+                
                 className="p-2 cursor-pointer hover:bg-gray-100 text-sm text-left"
               >
                 {sugerencia.fullName} - {phoneString}
               </li>
-            )
+            );
           })}
         </ul>
       )}
