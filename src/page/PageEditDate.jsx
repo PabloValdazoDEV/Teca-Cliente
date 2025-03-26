@@ -8,11 +8,13 @@ import { useAtom } from "jotai";
 import citaSeleccionada from "../context/CitaSeleccionada";
 import { useNavigate } from "react-router";
 import modalEditDate from "../context/ModalEditDate";
+import { RESET } from "jotai/utils";
 
 const PageEditDate = ({
   customer,
   time,
   observation,
+  price,
   advance,
   userId,
   userName,
@@ -20,11 +22,9 @@ const PageEditDate = ({
   date,
   urgentDate,
 }) => {
+  const queryClient = useQueryClient();
 
-  const queryClient = useQueryClient(); // Obtén queryClient desde el contexto
-  
-
-  const dateNow = new Date(Date.now())
+  const dateNow = new Date(Date.now());
 
   const [showModalEdit, setShowModalEdit] = useAtom(modalEditDate);
   const navigate = useNavigate();
@@ -36,8 +36,21 @@ const PageEditDate = ({
   const [timeUser, setTimeUser] = useState(time);
   const [showCalenda, setShowCalenda] = useState(false);
   const [advanceValue, setAdvanceValue] = useState(advance || "No");
-  const [citaUrgenteValue, setCitaUrgenteValue] = useState(urgentDate ? "Sí" : "No");
+  const [citaUrgenteValue, setCitaUrgenteValue] = useState(
+    urgentDate ? "Sí" : "No"
+  );
   const [modalError, setModalError] = useState(false);
+  const [modalCerrar, setModalCerrar] = useState(false);
+  const [oldDate, setOldDate] = useState({
+    citaDate: date,
+    userId: userId,
+    advance_date: advance === "Sí" ? true : false,
+    urgent_date: urgentDate,
+    time: time,
+    dateObservation: observation,
+    sessionPrice: price,
+  });
+
   const {
     data: dataForm,
     isLoading,
@@ -60,6 +73,17 @@ const PageEditDate = ({
     },
     enabled: !!idUser && !!timeUser,
   });
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+    watch,
+    data,
+    getValues,
+  } = useForm();
 
   const convertToCustomFormat = (date) => {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
@@ -163,16 +187,6 @@ const PageEditDate = ({
     },
   });
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-    data,
-  } = useForm();
-
   const watchAllFields = watch();
 
   const watchDate = watch("date");
@@ -216,7 +230,6 @@ const PageEditDate = ({
     { name: "2 horas", id: 120 },
   ];
   const onSubmit = (data) => {
-    // console.log(data);
     if (!dataCita) {
       return alert("Seleccione una cita");
     }
@@ -226,18 +239,13 @@ const PageEditDate = ({
       citaDate: dataCita,
       message: `Hola ${
         removeAccents(customer.fullName).split(" ")[0]
-      }, le informamos que tiene cita en el Centro Teca el dia ${removeAccents(
+      }, le informamos que su cita a cambiado de fecha al ${removeAccents(
         formatCustomDate(dataCita)
       )}.`,
       customerId: customer.id,
-      customer: {
-        customerName: customer.fullName,
-        customerPhone: customer.phone[0],
-      },
       dateId: dateId,
-      urgent_date: citaUrgenteValue == "Sí" ? true : false
+      urgent_date: citaUrgenteValue == "Sí" ? true : false,
     });
-    // setShowModalEdit(false);
   };
 
   const [availableTimes, setAvailableTimes] = useState([]);
@@ -245,14 +253,14 @@ const PageEditDate = ({
   useEffect(() => {
     const generateAvailableTimes = () => {
       if (!watchAllFields.date || !timeUser || !citasOcupdasEmpleado) return;
-    
+
       const selectedDate = new Date(watchAllFields.date);
       const dayOfWeek = selectedDate.getDay();
-    
+
       let startHour = 10;
       let endHour = 0;
       let endMinutes = 0;
-    
+
       if (dayOfWeek >= 1 && dayOfWeek <= 4) {
         endHour = 22;
         endMinutes = 0;
@@ -263,7 +271,7 @@ const PageEditDate = ({
         setAvailableTimes([]);
         return;
       }
-    
+
       const horasOcupadasDia = citasOcupdasEmpleado
         .filter((cita) => {
           const formData = new Date(cita.citaDate);
@@ -278,15 +286,15 @@ const PageEditDate = ({
             endHour: new Date(formData.getTime() + cita.time * 60000),
           };
         });
-    
+
       const startTime = new Date(selectedDate);
       const endTime = new Date(selectedDate);
       startTime.setHours(startHour, 0, 0, 0);
       endTime.setHours(endHour, endMinutes, 0, 0);
-    
+
       const times = [];
       const currentTime = new Date(startTime);
-    
+
       // Generar horas disponibles en incrementos de 5 minutos
       while (currentTime < endTime) {
         const formattedTime = `${String(currentTime.getHours()).padStart(
@@ -296,28 +304,28 @@ const PageEditDate = ({
         times.push(formattedTime);
         currentTime.setMinutes(currentTime.getMinutes() + 10); // Incremento de 5 minutos
       }
-    
+
       const availableTimes = times.filter((time) => {
         const [timeHours, timeMinutes] = time.split(":").map(Number);
-    
+
         const sessionTime = new Date(selectedDate);
         sessionTime.setHours(timeHours, timeMinutes, 0, 0);
-    
+
         const endSessionTime = new Date(
           sessionTime.getTime() + timeUser * 60000
         );
-    
+
         if (endSessionTime > endTime) {
           return false;
         }
-    
+
         if (dayOfWeek >= 1 && dayOfWeek <= 5) {
           const blockStart = new Date(selectedDate);
           blockStart.setHours(14, 0, 0, 0);
-    
+
           const blockEnd = new Date(selectedDate);
           blockEnd.setHours(16, 0, 0, 0);
-    
+
           if (
             (sessionTime >= blockStart && sessionTime < blockEnd) ||
             (endSessionTime > blockStart && endSessionTime <= blockEnd) ||
@@ -326,12 +334,12 @@ const PageEditDate = ({
             return false;
           }
         }
-    
+
         const isOverlapping = horasOcupadasDia.some(
           ({ hour, minutes, endHour }) => {
             const citaStart = new Date(selectedDate);
             citaStart.setHours(hour, minutes, 0, 0);
-    
+
             return (
               (sessionTime >= citaStart && sessionTime < endHour) ||
               (endSessionTime > citaStart && endSessionTime <= endHour) ||
@@ -339,10 +347,10 @@ const PageEditDate = ({
             );
           }
         );
-    
+
         return !isOverlapping;
       });
-    
+
       setAvailableTimes(availableTimes);
     };
 
@@ -356,7 +364,30 @@ const PageEditDate = ({
       setAdvanceValue(e.target.checked ? "Sí" : "No");
     }
     if (e.target.id === "urgent_date") {
+      console.log(e.target.checked)
       setCitaUrgenteValue(e.target.checked ? "Sí" : "No");
+    }
+  };
+  const allValue = getValues();
+
+  const btnCerrar = (e) => {
+    e.preventDefault();
+    if (
+      (allValue.userId === oldDate.userId &&
+        allValue.time == oldDate.time &&
+        allValue.sessionPrice == oldDate.sessionPrice &&
+        allValue.dateObservation === oldDate.dateObservation &&
+        // advanceValue === oldDate.advance_date &&
+        // citaUrgenteValue === oldDate.urgent_date &&
+        !new Date(valorCitaSeleccionada).getTime()) ||
+      allValue.userId === undefined
+    ) {
+      setShowModalEdit(false);
+      setValorCitaSeleccionada(null);
+      setDataCita(null);
+    } else {
+      setModalCerrar(true);
+      console.log("distinto");
     }
   };
 
@@ -405,7 +436,13 @@ const PageEditDate = ({
               textError="Seleccione al trabajador"
               type="text"
               id="customer"
-              defaultValue={`${customer.fullName} - ${customer.phone[0]}`}
+              defaultValue={`${customer?.fullName} / ${customer?.phones
+                .filter(
+                  (phone) =>
+                    phone.isCommunicationPhone === true && phone.phoneNumber
+                )
+                .map((phone) => `${phone.countryCode} ${phone.phoneNumber}`)
+                .join(" ")}`}
               // error={errors.userId}
               // options={dataForm.dataUsers}
               disabled={true}
@@ -435,7 +472,7 @@ const PageEditDate = ({
               disabled={date < dateNow}
             />
             <div className="flex flex-row items-end gap-5 w-full">
-              <InputForm              
+              <InputForm
                 label="Fecha preferida"
                 placeholder="Escriba observaciones..."
                 type="date"
@@ -457,14 +494,27 @@ const PageEditDate = ({
                 disabled={!isHourSelectEnabled && date < dateNow}
               />
             </div>
-            <InputForm
-              label="Observaciones de la cita"
-              placeholder="Escriba observaciones..."
-              type="text"
-              defaultValue={observation}
-              id="dateObservation"
-              {...register("dateObservation")}
-            />
+            <div className="flex flex-row items-end gap-5 w-full">
+              <InputForm
+                label="Observaciones de la cita"
+                placeholder="Escriba observaciones..."
+                type="text"
+                defaultValue={observation}
+                id="dateObservation"
+                {...register("dateObservation")}
+              />
+
+              <div className="w-1/3">
+                <InputForm
+                  label="Precio (€)"
+                  placeholder="Ej. 00"
+                  type="number"
+                  defaultValue={+price}
+                  id="sessionPrice"
+                  {...register("sessionPrice")}
+                />
+              </div>
+            </div>
 
             <div className="flex flex-row items-end gap-5 w-full">
               <InputForm
@@ -495,10 +545,7 @@ const PageEditDate = ({
               </button>
 
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  setShowModalEdit(false);
-                }}
+                onClick={btnCerrar}
                 className="bg-gray-500 text-white px-4 py-2 rounded"
               >
                 Cerrar
@@ -521,13 +568,117 @@ const PageEditDate = ({
           {modalError && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white p-5 rounded-lg w-96">
-                <h2 className="text-xl font-bold mb-3">Error al editar la cita</h2>
+                <h2 className="text-xl font-bold mb-3">
+                  Error al editar la cita
+                </h2>
                 <button
-                    onClick={() => setModalError(false)}
+                  onClick={() => setModalError(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  Cerrar ventana
+                </button>
+              </div>
+            </div>
+          )}
+          {modalCerrar && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white p-5 rounded-lg w-96 flex flex-col gap-5">
+                <h2 className="text-xl font-bold">
+                  Cambios detectados en la cita
+                </h2>
+
+                {allValue.userId !== oldDate.userId && (
+                  <p>
+                    El profesional asignado era:{" "}
+                    {
+                      dataForm.dataUsers.find(
+                        (user) => user.id === oldDate.userId
+                      ).name
+                    }{" "}
+                    y ahora es:{" "}
+                    {
+                      dataForm.dataUsers.find(
+                        (user) => user.id === allValue.userId
+                      ).name
+                    }
+                  </p>
+                )}
+
+                {allValue.time != oldDate.time && (
+                  <p>
+                    La duración anterior era: {oldDate.time} y ahora es:{" "}
+                    {allValue.time}
+                  </p>
+                )}
+
+                {allValue.sessionPrice != oldDate.sessionPrice && (
+                  <p>
+                    El precio anterior era: {oldDate.sessionPrice} y ahora es:{" "}
+                    {allValue.sessionPrice}
+                  </p>
+                )}
+
+                {allValue.dateObservation !== oldDate.dateObservation && (
+                  <p>
+                    Observaciones anteriores: {oldDate.dateObservation} <br />
+                    Nuevas observaciones: {allValue.dateObservation}
+                  </p>
+                )}
+
+                {allValue.dateAdvance !== oldDate.advance_date && (
+                  <p>
+                   Cita adelantada: de{" "}
+                    {oldDate.advance_date ? "Sí" : "No"} 
+                    {" "}a{" "} {allValue.dateAdvance ? "Sí" : "No"}
+                  </p>
+                )}
+
+                {allValue.urgent_date !== oldDate.urgent_date && (
+                  <p>
+                    Cita urgente: de{" "}{oldDate.urgent_date ? "Sí" : "No"}{" "}
+                    {" "}a{" "} {allValue.urgent_date ? "Sí" : "No"}
+                  </p>
+                )}
+
+                {!!new Date(valorCitaSeleccionada).getTime() && (
+                  <p>
+                    Fecha original:{" "}
+                    {formatCustomDate(
+                      convertToCustomFormat(new Date(oldDate.citaDate))
+                    )}{" "}
+                    <br />
+                    Nueva fecha:{" "}
+                    {formatCustomDate(
+                      convertToCustomFormat(new Date(valorCitaSeleccionada))
+                    )}
+                  </p>
+                )}
+
+                <p>Se han realizado cambios en los campos de la cita.</p>
+
+                <div className="flex flex-row items-end justify-between gap-5 w-full">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setModalCerrar(false);
+                      setShowModalEdit(false);
+                      setValorCitaSeleccionada(null);
+                      setDataCita(null);
+                    }}
                     className="bg-gray-500 text-white px-4 py-2 rounded"
                   >
-                    Cerrar ventana
+                    Cerrar sin guardar
                   </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setModalCerrar(false);
+                    }}
+                    className="bg-gray-500 text-white px-4 py-2 rounded"
+                  >
+                    Volver a editar
+                  </button>
+                </div>
               </div>
             </div>
           )}

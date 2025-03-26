@@ -126,16 +126,8 @@ const PageCreateDate = () => {
       navigate("/home");
     },
     onError: () => {
-      setModalError(true)
-      console.log("error")
-      // reset();
-      // setDataCita(null);
-      // setIdUser(null);
-      // setTimeUser(null);
-      // setResetTrigger(true);
-      // setShowCalenda(false);
-      // setValorCitaSeleccionada(null);
-      // queryClient.invalidateQueries();
+      setModalError(true);
+      console.log("error");
     },
   });
 
@@ -201,14 +193,10 @@ const PageCreateDate = () => {
       citaDate: dataCita,
       message: `Hola ${
         removeAccents(data.customer.name).split(" ")[0]
-      }, le informamos que tiene cita en el Centro Teca el dia ${removeAccents(
+      }, le informamos que tiene cita en el Centro Teca al dia ${removeAccents(
         formatCustomDate(dataCita)
       )}.`,
       customerId: data.customer.id,
-      // customer: {
-      //   customerName: customer.fullName,
-      //   customerPhone: customer.phone[0],
-      // },
     });
   };
 
@@ -355,7 +343,7 @@ const PageCreateDate = () => {
                   setShowCalenda(false);
                 }}
                 disabled
-                className="bg-blue-500/50 text-white px-4 py-2 rounded w-full"
+                className="bg-blue-500/50 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105 w-full"
               >
                 Ver Disponibilidad General
               </button>
@@ -366,7 +354,7 @@ const PageCreateDate = () => {
                   setValorCitaSeleccionada(null);
                   setShowCalenda(false);
                 }}
-                className="bg-blue-500 text-white px-4 py-2 rounded  w-full"
+                className="bg-blue-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105   w-full"
               >
                 Ver Disponibilidad General
               </button>
@@ -425,13 +413,25 @@ const PageCreateDate = () => {
                 disabled={!isHourSelectEnabled}
               />
             </div>
-            <InputForm
-              label="Observaciones de la cita"
-              placeholder="Escriba observaciones..."
-              type="text"
-              id="dateObservation"
-              {...register("dateObservation")}
-            />
+            <div className="flex flex-row items-end gap-5 w-full">
+              <InputForm
+                label="Observaciones de la cita"
+                placeholder="Escriba observaciones..."
+                type="text"
+                id="dateObservation"
+                {...register("dateObservation")}
+              />
+              <div className="w-1/3">
+                <InputForm
+                  label="Precio (€)"
+                  placeholder="Ej. 00"
+                  type="number"
+                  step="0.01"
+                  id="sessionPrice"
+                  {...register("sessionPrice")}
+                />
+              </div>
+            </div>
             <div className="flex flex-row items-end gap-5 w-full">
               <InputForm
                 label="Avanzar cita"
@@ -453,14 +453,14 @@ const PageCreateDate = () => {
             {dataCita ? (
               <button
                 type="submit"
-                className="bg-blue-500 text-white px-4 py-2 rounded"
+                className="bg-blue-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105 "
               >
                 Crear cita
               </button>
             ) : (
               <button
                 disabled
-                className="bg-blue-500/50 text-white px-4 py-2 rounded"
+                className="bg-blue-500/50 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105 "
               >
                 Crear cita
               </button>
@@ -475,13 +475,15 @@ const PageCreateDate = () => {
           {modalError && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white p-5 rounded-lg w-96">
-                <h2 className="text-xl font-bold mb-3">Error al editar la cita</h2>
+                <h2 className="text-xl font-bold mb-3">
+                  Error al editar la cita
+                </h2>
                 <button
-                    onClick={() => setModalError(false)}
-                    className="bg-gray-500 text-white px-4 py-2 rounded"
-                  >
-                    Cerrar ventana
-                  </button>
+                  onClick={() => setModalError(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105 "
+                >
+                  Cerrar ventana
+                </button>
               </div>
             </div>
           )}
