@@ -127,6 +127,70 @@ const getAllUser = async () => {
   }
 }
 
+const postCustomerCreate = async (data) => {
+  console.log("en el font", data)
+  try {
+    const response = await api.post("/customers/create", data);
+      return response.data;
+    } catch (error) {
+      console.error("Error en postCustomerCreate:", error);
+      throw error;
+    }
+}
+
+const getAllCustomers = async (params = {}) => {
+  try {
+    const response = await api.get('/customers/all', { params });
+    return response.data
+  } catch (error) {
+    console.error("Error en getAllCustomers:", error);
+    throw error;
+  }
+}
+
+const getCustomerEdit = async (customerId) => {
+  try {
+    const response = await api.get(`/customers/edit/${customerId}`)
+    return response.data
+  } catch (error) {
+    console.error("Error en getCustomerEdit:", error);
+    throw error;
+  }
+}
+
+const putCustomerEdit = async (data) => {
+  console.log(data)
+  try {
+    await api.put("/customers/edit", data)
+  } catch (error) {
+    console.error("Error en putCustomerEdit:", error);
+    throw error;
+  }
+}
+
+const getCustomerDate = async (id) => {
+  console.log(id)
+  try {
+    const response = await api.get(`/customers/delete/${id}`)
+    console.log(response)
+    return response.data
+  } catch (error) {
+    console.error("Error en getCustomerDate:", error);
+    throw error;
+  }
+}
+
+const deteleCustomeRelation = async (id) =>{
+  console.log(id)
+  try {
+    await api.delete(`/customers/delete/${id}`)
+  } catch (error) {
+    console.error("Error en deteleCustomeRelation:", error);
+    throw error;
+  }
+} 
+
+
 export {
   GetAllUsers,
   tryLogin,
@@ -139,5 +203,11 @@ export {
   deleteDate,
   sendSms,
   putDataEdit,
-  getAllUser
+  getAllUser,
+  postCustomerCreate,
+  getAllCustomers,
+  getCustomerEdit,
+  putCustomerEdit,
+  getCustomerDate,
+  deteleCustomeRelation,
 };
