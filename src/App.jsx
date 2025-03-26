@@ -1,10 +1,14 @@
 import { Route, Routes, Navigate } from "react-router";
-import HomeAuth from "@/components/HomeAuth";
+// import HomeAuth from "@/components/HomeAuth";
 import PageLogin from "@/page/PageLogin";
 import FormRegister from "@/components/FormRegister";
 import isAuth from "@/API/middleware/isAuth";
 import PageCreateDate from "./page/PageCreateDate";
 import Navbar from "./components/Navbar";
+import PageCustomers from "./page/PageCustomers";
+import PageCreateCustomers from "./page/PageCreateCustomers";
+import PageEditCustomers from "./page/PageEditCustomers";
+import PageHome from "./page/PageHome";
 
 const PrivateRoute = ({ element }) => {
   return isAuth() ? element : <Navigate to="/" />;
@@ -28,8 +32,23 @@ function App() {
             />
             <Route
               path="home"
-              element={<PrivateRoute element={<HomeAuth />} />}
+              element={<PrivateRoute element={<PageHome />} />}
             />
+
+            <Route path="customers">
+              <Route
+                path=""
+                element={<PrivateRoute element={<PageCustomers />} />}
+              />
+              <Route
+                path="create"
+                element={<PrivateRoute element={<PageCreateCustomers />} />}
+              />
+              <Route
+                path="edit/:id"
+                element={<PrivateRoute element={<PageEditCustomers />} />}
+              />
+            </Route>
             <Route
               path="register"
               element={<PrivateRoute element={<FormRegister />} />}
