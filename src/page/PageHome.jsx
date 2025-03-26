@@ -1,12 +1,11 @@
 import { useNavigate } from "react-router";
-import { tryLogout } from "@/API";
 import { useState, useEffect } from "react";
-import CalendarioVista from "./Calendario";
+import CalendarioVista from "../components/Calendario";
 import { useQuery } from "@tanstack/react-query";
 import { getAllUser } from "../API";
-import InputForm from "./InputForm";
+import InputForm from "../components/InputForm";
 
-const HomeAuth = () => {
+const PageHome = () => {
   const navigate = useNavigate();
 
   const { data, isLoading, error } = useQuery({
@@ -51,4 +50,4 @@ const HomeAuth = () => {
   }
 };
 
-export default HomeAuth;
+export default PageHome;
