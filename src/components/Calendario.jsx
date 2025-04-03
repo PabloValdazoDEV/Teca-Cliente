@@ -8,8 +8,10 @@ import { deleteDate, getFormDateUser } from "../API";
 import PageEditDate from "../page/PageEditDate";
 import { useAtom } from "jotai";
 import modalEditDate from "../context/ModalEditDate";
+import { useNavigate } from "react-router";
 
 const CalendarioVista = ({ userId, userName }) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showModalEdit, setShowModalEdit] = useAtom(modalEditDate);
 
@@ -223,13 +225,16 @@ const CalendarioVista = ({ userId, userName }) => {
                 Cerrar
               </button>
               <button
-                onClick={() => console.log(selectedEvent)}
+                onClick={() => {
+                  navigate(`/docs/${selectedEvent.customer.id}`)
+                }}
                 className="bg-emerald-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
-                Ver fichas
+                Ver Documentos
               </button>
               <button
-                onClick={() => setShowModalEdit(true)}
+                onClick={() => 
+                  setShowModalEdit(true)}
                 className="bg-blue-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
                 Editar

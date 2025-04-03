@@ -104,10 +104,10 @@ if(data?.length === 0){
                 </td>
                 <td className="p-2">
                   <button
-                    onClick={() => console.log("Ver fichas")}
+                    onClick={() => navigate(`/docs/${customer.id}`)}
                     className="bg-emerald-500 text-white px-4 py-2 rounded cursor-pointer  transition-transform duration-200 hover:scale-105"
                   >
-                    Ver fichas
+                    Ver Documentos
                   </button>
                 </td>
                 <td className="p-2">

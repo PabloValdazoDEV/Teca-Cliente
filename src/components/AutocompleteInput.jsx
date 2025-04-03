@@ -18,7 +18,7 @@ const AutocompleteInput = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const inputRef = useRef(null);
 
-  // console.log(options)
+  
 
   const viewValue = () => {
     if (!inputValue) return;

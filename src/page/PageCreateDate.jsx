@@ -127,7 +127,6 @@ const PageCreateDate = () => {
     },
     onError: () => {
       setModalError(true);
-      console.log("error");
     },
   });
 

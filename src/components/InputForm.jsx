@@ -10,7 +10,10 @@ const InputForm = (data) => {
         </label>
         <select
           id={id}
-          className={`w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 ${rest.disabled && "opacity-50"}`}
+          className={`w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 
+            hover:outline-1 hover:outline-white 
+            focus-visible:outline-1 focus-visible:outline-white 
+            ${rest.disabled && "opacity-50"}`}
           defaultValue={rest.value ?? ""}
           {...rest}
         >
@@ -38,7 +41,7 @@ const InputForm = (data) => {
           <input
             id={id}
             type="checkbox"
-            className={`bg-white p-2 rounded border border-gray-300 text-black text-sm ${rest.disabled && "opacity-50"}`}
+            className={`h-5 w-5 text-emerald-500 border-gray-300 rounded focus:ring-emerald-400 ${rest.disabled && "opacity-50"}`}
             checked={rest.checked ?? false}
             onChange={rest.onChange}
             {...rest}
@@ -55,7 +58,12 @@ const InputForm = (data) => {
       </label>
       <input
         id={id}
-        className={`w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 ${rest.disabled && "opacity-50"}`}
+        className={`w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 
+          hover:outline-1 hover:outline-white 
+          focus-visible:outline-1 focus-visible:outline-white 
+          ${rest.disabled && "opacity-50"}`}
+        
+        
         placeholder={placeholder}
         defaultValue={rest.value ?? ""}
         {...rest}

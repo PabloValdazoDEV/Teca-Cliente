@@ -9,6 +9,8 @@ import PageCustomers from "./page/PageCustomers";
 import PageCreateCustomers from "./page/PageCreateCustomers";
 import PageEditCustomers from "./page/PageEditCustomers";
 import PageHome from "./page/PageHome";
+import PageDoc from "./page/PageDoc";
+import PageViewDoc from "./page/PageViewDoc";
 
 const PrivateRoute = ({ element }) => {
   return isAuth() ? element : <Navigate to="/" />;
@@ -47,6 +49,20 @@ function App() {
               <Route
                 path="edit/:id"
                 element={<PrivateRoute element={<PageEditCustomers />} />}
+              />
+            </Route>
+            <Route path="docs">
+              <Route
+                path="fichas/edit/:id"
+                element={<PrivateRoute element={<PageCustomers />} />}
+              />
+              <Route
+                path="fichas/:id"
+                element={<PrivateRoute element={<PageViewDoc />} />}
+              />
+              <Route
+                path=":id"
+                element={<PrivateRoute element={<PageDoc />} />}
               />
             </Route>
             <Route

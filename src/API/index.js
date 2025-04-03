@@ -54,7 +54,7 @@ const getDataCalendario = async (trabajador) => {
 const getFormDateCreate = async () => {
   try {
     const response = await api.get("/citas/createForm");
-    // console.log(response.data)
+
     return response.data;
   } catch (error) {
     console.error(error);
@@ -66,7 +66,7 @@ const getFormDateUser = async (id) => {
     const response = await api.get(
       `/citas/createCalendar/${id}`
     );
-    // console.log(response.data)
+
     return response.data;
   } catch (error) {
     console.error(error);
@@ -99,7 +99,6 @@ const sendSms = async (phone, message) => {
       message
     });
     setStatus('Mensaje enviado con éxito!');
-    console.log(response.data);
   } catch (error) {
     setStatus('Error enviando el mensaje');
     console.error(error);
@@ -128,7 +127,6 @@ const getAllUser = async () => {
 }
 
 const postCustomerCreate = async (data) => {
-  console.log("en el font", data)
   try {
     const response = await api.post("/customers/create", data);
       return response.data;
@@ -159,7 +157,6 @@ const getCustomerEdit = async (customerId) => {
 }
 
 const putCustomerEdit = async (data) => {
-  console.log(data)
   try {
     await api.put("/customers/edit", data)
   } catch (error) {
@@ -169,10 +166,8 @@ const putCustomerEdit = async (data) => {
 }
 
 const getCustomerDate = async (id) => {
-  console.log(id)
   try {
     const response = await api.get(`/customers/delete/${id}`)
-    console.log(response)
     return response.data
   } catch (error) {
     console.error("Error en getCustomerDate:", error);
@@ -181,7 +176,6 @@ const getCustomerDate = async (id) => {
 }
 
 const deteleCustomeRelation = async (id) =>{
-  console.log(id)
   try {
     await api.delete(`/customers/delete/${id}`)
   } catch (error) {
@@ -190,6 +184,75 @@ const deteleCustomeRelation = async (id) =>{
   }
 } 
 
+const getAllDoc = async (id) => {
+  try {
+    const response = await api.get(`/docs/${id}`)
+    return response.data
+  } catch (error) {
+    console.error("Error en getAllDoc:", error);
+    throw error;
+  }
+}
+
+const getAllFcihas = async (id) => {
+  try {
+    const response = await api.get(`/docs/ficha/${id}`)
+    return response.data
+  } catch (error) {
+    console.error("Error en getAllFcihas:", error);
+    throw error;
+  }
+}
+
+const postFcihaCreate = async (data) =>{
+
+  try {
+    await api.post(`/docs/ficha/${data.docId}`, data)
+  } catch (error) {
+    console.error("Error en postFcihaCreate:", error);
+    throw error;
+  }
+}
+
+const DeleteFciha = async (data) =>{
+
+  try {
+    await api.delete(`/docs/ficha/${data}`)
+  } catch (error) {
+    console.error("Error en DeleteFciha:", error);
+    throw error;
+  }
+}
+
+const DeleteDoc = async (data) =>{
+
+  try {
+    await api.delete(`/docs/${data}`)
+  } catch (error) {
+    console.error("Error en DeleteDoc:", error);
+    throw error;
+  }
+}
+
+const putFcihaEdit = async (data) =>{
+
+  try {
+    await api.put(`/docs/ficha/${data.fichaId}`, data)
+  } catch (error) {
+    console.error("Error en putFcihaEdit:", error);
+    throw error;
+  }
+}
+
+const postDocCreate = async (data) =>{
+
+  try {
+    await api.post(`/docs/${data}`, data)
+  } catch (error) {
+    console.error("Error en postDocCreate:", error);
+    throw error;
+  }
+}
 
 export {
   GetAllUsers,
@@ -210,4 +273,11 @@ export {
   putCustomerEdit,
   getCustomerDate,
   deteleCustomeRelation,
+  getAllDoc,
+  getAllFcihas,
+  postFcihaCreate,
+  DeleteFciha,
+  putFcihaEdit,
+  postDocCreate,
+  DeleteDoc,
 };

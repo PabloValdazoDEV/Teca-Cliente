@@ -296,7 +296,6 @@ const PageCustomers = () => {
                 <button
                   onClick={(e) => {
                     e.preventDefault();
-                    console.log(phone);
                     if (phone.phoneNumber) {
                       setArrayPhone((prev) => [...prev, { ...phone }]);
                       setPhone({ phoneNumber: "", countryCode: "+34" });

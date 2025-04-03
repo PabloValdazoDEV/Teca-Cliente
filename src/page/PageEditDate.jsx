@@ -364,7 +364,6 @@ const PageEditDate = ({
       setAdvanceValue(e.target.checked ? "Sí" : "No");
     }
     if (e.target.id === "urgent_date") {
-      console.log(e.target.checked)
       setCitaUrgenteValue(e.target.checked ? "Sí" : "No");
     }
   };
@@ -387,7 +386,6 @@ const PageEditDate = ({
       setDataCita(null);
     } else {
       setModalCerrar(true);
-      console.log("distinto");
     }
   };
 
