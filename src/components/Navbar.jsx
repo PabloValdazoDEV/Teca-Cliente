@@ -21,7 +21,7 @@ const Navbar = () => {
   const [showModalCreate, setShowModalCreate] = useAtom(ModalCreateFicha);
   const [showModalEditFicha, setShowModalEditFicha] = useAtom(ModalEditFicha);
   const [showModalDeleteDoc, setShowModalDeleteDoc] = useAtom(ModalDeleteDoc);
-  
+
   const resetContext = () => {
     setShowModalEdit(false);
     setCustomerId("");
@@ -33,33 +33,40 @@ const Navbar = () => {
   return (
     <>
       <div className="w-full">
-      <div className=" top-0 relative flex justify-center items-center w-full h-20 bg-emerald-400 z-100">
-  {/* Links centrados */}
-  <div className="flex gap-10">
-    {pages.map((page, i) => (
-      <NavLink
-        key={i}
-        to={page.path}
-        onClick={resetContext}
-        className="text-white text-lg transition-transform duration-200 hover:scale-105"
-      >
-        {page.title}
-      </NavLink>
-    ))}
-  </div>
+        <nav className="bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-md h-20 flex items-center justify-center relative z-50 rounded-b-xl">
+          {/* Links centrados */}
+          <div className="absolute left-0 right-0 flex justify-center gap-8">
+            {pages.map((page, i) => (
+              <NavLink
+                key={i}
+                to={page.path}
+                onClick={resetContext}
+                className={({ isActive }) =>
+                  `text-white text-lg font-medium transition-all duration-200 hover:scale-105 hover:text-gray-100 ${
+                    isActive ? "underline underline-offset-4" : ""
+                  }`
+                }
+              >
+                {page.title}
+              </NavLink>
+            ))}
+          </div>
 
-  {/* Cerrar sesión a la derecha */}
-  <NavLink
-    to={"/"}
-    onClick={ ()=>{
-      tryLogout()
-      resetContext()
-    }}
-    className="absolute right-10 text-white text-lg transition-transform duration-200 hover:scale-105"
-  >
-    Cerrar sesión
-  </NavLink>
-</div>
+          {/* Cerrar sesión a la derecha */}
+          <div className="absolute right-6">
+          <NavLink
+            to={"/"}
+            onClick={() => {
+              tryLogout();
+              resetContext();
+            }}
+            className="inline-block text-white text-lg font-medium transition-transform duration-200 hover:scale-105 hover:text-gray-100"
+
+          >
+            Cerrar sesión
+          </NavLink>
+          </div>
+        </nav>
 
         <Outlet />
       </div>

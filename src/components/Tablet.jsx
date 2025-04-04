@@ -163,7 +163,7 @@ if(data?.length === 0){
                }}
                className="bg-gray-500 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105"
              >
-               Cancelar
+               No, mantener
              </button>
        
              {datefindCustomer?.length ? (
@@ -223,7 +223,7 @@ if(data?.length === 0){
                 }}
                 className="bg-gray-500 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105"
               >
-                Cancelar
+                No, mantener
               </button>
               <button
                 onClick={() => {

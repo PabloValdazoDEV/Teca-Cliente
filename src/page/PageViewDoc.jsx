@@ -14,11 +14,11 @@ const PageViewDoc = () => {
   const queryClient = useQueryClient();
   const [showModalCreate, setShowModalCreate] = useAtom(ModalCreateFicha);
   const [showModalEdit, setShowModalEdit] = useAtom(ModalEditFicha);
-  const [showModalDelete, setShowModalDelete] = useAtom(ModalDeleteDoc)
+  const [showModalDelete, setShowModalDelete] = useAtom(ModalDeleteDoc);
 
   const navigate = useNavigate();
   const { id: docId } = useParams();
-  const [registroSelected, setRegistroSelected] = useState({})
+  const [registroSelected, setRegistroSelected] = useState({});
 
   function formatCustomDate(dateString) {
     const date = new Date(dateString.replace(" ", "T"));
@@ -41,8 +41,7 @@ const PageViewDoc = () => {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
- 
-      DeleteFciha(data)
+      DeleteFciha(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries();
@@ -51,15 +50,13 @@ const PageViewDoc = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (data) => {
-      DeleteDoc(data)
+      DeleteDoc(data);
     },
     onSuccess: () => {
       setShowModalDelete(false);
-      navigate(-1)
+      navigate(-1);
     },
   });
-  
-
 
   useEffect(() => {
     queryClient.invalidateQueries();
@@ -72,7 +69,6 @@ const PageViewDoc = () => {
     return <h1>Error</h1>;
   }
   if (data) {
-
     return (
       <div className="flex justify-center items-center flex-col w-6xl mx-auto gap-5 bg-gray-100 mt-10 p-5 rounded-lg shadow-lg">
         <div className="flex flex-row gap-5 justify-between w-full">
@@ -85,14 +81,17 @@ const PageViewDoc = () => {
                 e.preventDefault();
                 setShowModalCreate(true);
               }}
-              className="bg-blue-500 text-white px-4 py-2 rounded cursor-pointer transition-transform duration-200 hover:scale-105"
+              disabled={data.customer.appointments.length === 0}
+              className={`bg-blue-500 text-white px-4 py-2 rounded cursor-pointer transition-transform duration-200 hover:scale-105 ${
+                data.customer.appointments.length === 0 && "bg-blue-500/50"
+              }`}
             >
               Agregar nuevo registro
             </button>
             <button
               onClick={(e) => {
                 e.preventDefault();
-                setShowModalDelete(true)
+                setShowModalDelete(true);
               }}
               className="bg-red-500 text-white px-4 py-2 rounded cursor-pointer transition-transform duration-200 hover:scale-105"
             >
@@ -107,11 +106,9 @@ const PageViewDoc = () => {
             >
               Volver
             </button>
-            
           </div>
         </div>
         {data.fichas.map((ficha) => {
-   
           return (
             <div
               key={ficha.id}
@@ -180,13 +177,11 @@ const PageViewDoc = () => {
                       LFX:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "PELVIS" &&
                           part.subBodyPart == "LFX"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -195,13 +190,11 @@ const PageViewDoc = () => {
                       F:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "COLUMNA" &&
                           part.subBodyPart == "F"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -215,7 +208,6 @@ const PageViewDoc = () => {
                           part.bodyPart == "CLAVICULA" &&
                           part.subBodyPart == "H"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -229,7 +221,6 @@ const PageViewDoc = () => {
                           part.bodyPart == "RODILLA" &&
                           part.subBodyPart == "H"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -238,13 +229,11 @@ const PageViewDoc = () => {
                       rowSpan="3"
                       className="border border-black px-2 text-xs bg-emerald-50 w-40"
                     >
-                    
-                          {ficha.bodyAssessments.map((part) => {
+                      {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "FS" &&
                           part.subBodyPart == "OTRO"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -253,13 +242,11 @@ const PageViewDoc = () => {
                       rowSpan="3"
                       className="border border-black px-2 text-xs bg-emerald-50 w-40"
                     >
-
-                       {ficha.bodyAssessments.map((part) => {
+                      {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "ES" &&
                           part.subBodyPart == "OTRO"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -268,13 +255,11 @@ const PageViewDoc = () => {
                       TRS:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "CERVICALES" &&
                           part.subBodyPart == "TRS"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -285,13 +270,11 @@ const PageViewDoc = () => {
                       _I_:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "PELVIS" &&
                           part.subBodyPart == "I"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -300,13 +283,11 @@ const PageViewDoc = () => {
                       E:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "COLUMNA" &&
                           part.subBodyPart == "E"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -315,13 +296,11 @@ const PageViewDoc = () => {
                       IZQ:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "CLAVICULA" &&
                           part.subBodyPart == "IZQ"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -330,13 +309,11 @@ const PageViewDoc = () => {
                       IZQ:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "RODILLA" &&
                           part.subBodyPart == "IZQ"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -351,13 +328,11 @@ const PageViewDoc = () => {
                       ILI:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "PELVIS" &&
                           part.subBodyPart == "ILI"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -366,13 +341,11 @@ const PageViewDoc = () => {
                       R.O:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
                       {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "COLUMNA" &&
                           part.subBodyPart == "RO"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -381,13 +354,11 @@ const PageViewDoc = () => {
                       DCH:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
-                       {ficha.bodyAssessments.map((part) => {
+                      {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "CLAVICULA" &&
                           part.subBodyPart == "DCH"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -396,13 +367,11 @@ const PageViewDoc = () => {
                       DCH:
                     </td>
                     <td className="border border-black px-2 text-xs bg-emerald-50 w-40">
-
-                       {ficha.bodyAssessments.map((part) => {
+                      {ficha.bodyAssessments.map((part) => {
                         if (
                           part.bodyPart == "RODILLA" &&
                           part.subBodyPart == "DCH"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -416,7 +385,6 @@ const PageViewDoc = () => {
                           part.bodyPart == "CERVICALES" &&
                           part.subBodyPart == "RO"
                         ) {
-
                           return part.description;
                         }
                       })}
@@ -429,8 +397,9 @@ const PageViewDoc = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     console.log("Editar");
-                    setRegistroSelected(ficha)
-                    setShowModalEdit(true)
+                    setRegistroSelected(ficha);
+                    setShowModalEdit(true);
+                    queryClient.invalidateQueries();
                   }}
                   className=" text-white px-4 py-2 rounded bg-blue-500 cursor-pointer transition-transform duration-200 hover:scale-105"
                 >
@@ -440,7 +409,7 @@ const PageViewDoc = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     console.log("Borrar");
-                    mutation.mutate(ficha.id)
+                    mutation.mutate(ficha.id);
                   }}
                   className=" text-white px-4 py-2 rounded bg-red-500 cursor-pointer transition-transform duration-200 hover:scale-105"
                 >
@@ -459,46 +428,49 @@ const PageViewDoc = () => {
         )}
         {showModalEdit && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <PageEditDoc customer={data.customer} docId={docId} registro={registroSelected}/>
+            <PageEditDoc
+              customer={data.customer}
+              docId={docId}
+              registro={registroSelected}
+            />
           </div>
         )}
         {showModalDelete && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
-            <h3 className="text-2xl font-bold mb-4">Eliminar ficha</h3>
-            <p className="text-gray-800 mb-4">
-              Estás a punto de eliminar todos los datos asociados esta ficha.
-            </p>
-            <p className="text-red-500 font-medium">
-              Esta acción es irreversible. Una vez eliminados, los datos no podrán recuperarse.
-            </p>
-            <p className="mt-4 font-semibold">
-              ¿Estás seguro de que deseas continuar?
-            </p>
-        
-            <div className="flex justify-center gap-5 mt-6">
-              <button
-                onClick={() => {
-                  setShowModalDelete(false);
-                }}
-                className="bg-gray-500 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105"
-              >
-                Cancelar
-              </button>
-        
-              
+            <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+              <h3 className="text-2xl font-bold mb-4">Eliminar ficha</h3>
+              <p className="text-gray-800 mb-4">
+                Estás a punto de eliminar todos los datos asociados esta ficha.
+              </p>
+              <p className="text-red-500 font-medium">
+                Esta acción es irreversible. Una vez eliminados, los datos no
+                podrán recuperarse.
+              </p>
+              <p className="mt-4 font-semibold">
+                ¿Estás seguro de que deseas continuar?
+              </p>
+
+              <div className="flex justify-center gap-5 mt-6">
                 <button
                   onClick={() => {
-                    deleteMutation.mutate(data.docId)
+                    setShowModalDelete(false);
+                  }}
+                  className="bg-gray-500 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105"
+                >
+                  No, mantener
+                </button>
+
+                <button
+                  onClick={() => {
+                    deleteMutation.mutate(data.docId);
                   }}
                   className="bg-red-500 text-white px-4 py-2 rounded transition-transform duration-200 hover:scale-105"
                 >
                   Confirmar eliminación
                 </button>
-            
+              </div>
             </div>
           </div>
-        </div>
         )}
       </div>
     );

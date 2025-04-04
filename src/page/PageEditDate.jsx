@@ -565,7 +565,7 @@ const PageEditDate = ({
           </div>
           {modalError && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white p-5 rounded-lg w-96">
+              <div className="bg-white p-6 rounded-2xl w-96 shadow-lg animate-fadeIn">
                 <h2 className="text-xl font-bold mb-3">
                   Error al editar la cita
                 </h2>

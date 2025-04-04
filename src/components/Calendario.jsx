@@ -171,7 +171,7 @@ const CalendarioVista = ({ userId, userName }) => {
 
       {showModal && selectedEvent && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-5 rounded-lg w-2/5">
+           <div className="bg-white p-6 rounded-2xl w-full max-w-2xl shadow-lg animate-fadeIn">
             <h2 className="text-xl font-bold mb-3">Detalles de la cita</h2>
             <p>
               <strong>Paciente:</strong> {selectedEvent.patientName}
@@ -246,8 +246,10 @@ const CalendarioVista = ({ userId, userName }) => {
 
       {showModalDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-5 rounded-lg w-96">
-            <h2 className="text-xl font-bold mb-3">Eliminar cita</h2>
+          <div className="bg-white p-6 rounded-2xl w-96 shadow-lg animate-fadeIn">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4 text-center">
+      ¿Estás seguro de eliminar esta cita?
+    </h2>
             <p>
               <strong>Paciente:</strong> {selectedEvent.patientName}
             </p>
@@ -259,7 +261,7 @@ const CalendarioVista = ({ userId, userName }) => {
                 onClick={() => setShowModalDelete(false)}
                 className="bg-gray-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
-                Cancelar
+                No, mantener
               </button>
               <button
                 onClick={() => {
@@ -271,7 +273,7 @@ const CalendarioVista = ({ userId, userName }) => {
                 }}
                 className="bg-red-500 text-white px-4 py-2 rounded  transition-transform duration-200 hover:scale-105"
               >
-                Eliminar
+                Sí, eliminar
               </button>
             </div>
           </div>
