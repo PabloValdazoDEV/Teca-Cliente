@@ -1,5 +1,4 @@
 import api from "@/API/api";
-import Cookies from "js-cookie";
 
 const GetAllUsers = async () => {
   try {
@@ -12,32 +11,52 @@ const GetAllUsers = async () => {
 };
 
 const tryLogin = async (data) => {
-  try {
-    const response = await api.post("/login", data);
-
-    if (response.data.token) {
-      Cookies.set("token", response.data.token);
-    }
-
-    return response.data;
-  } catch (error) {
-    return { success: false, message: "Error desconocido" };
-  }
+  const response = await api.post("/login", data);
+  return response.data;
 };
 
 const tryRegister = async (data) => {
-  try {
-    await api.post("/register", data);
-  } catch (error) {
-    console.error(
-      "Error en el registro:",
-      error.response?.data || error.message
-    );
-  }
+  const response = await api.post("/register", data);
+  return response.data;
 };
 
 const tryLogout = async () => {
-  Cookies.remove("token");
+  await api.post("/logout");
+};
+
+const getCurrentUser = async () => {
+  const response = await api.get("/me");
+  return response.data;
+};
+
+const forgotPassword = async (email) => {
+  const response = await api.post("/forgot-password", { email });
+  return response.data;
+};
+
+const resetPassword = async (token, password) => {
+  const response = await api.post("/reset-password", { token, password });
+  return response.data;
+};
+
+const updateProfile = async (data) => {
+  const response = await api.put("/me", data);
+  return response.data;
+};
+
+const updatePassword = async (data) => {
+  const response = await api.put("/me/password", data);
+  return response.data;
+};
+
+const getEmployees = async () => {
+  const response = await api.get("/users");
+  return response.data;
+};
+
+const updateEmployee = async (id, data) => {
+  const response = await api.put(`/users/${id}`, data);
+  return response.data;
 };
 
 const getDataCalendario = async (trabajador) => {
@@ -92,15 +111,13 @@ const deleteDate = async (id) => {
 };
 
 const sendSms = async (phone, message) => {
-
   try {
     const response = await api.post('/citas/sendCommunication', {
       to: `+34${phone}`,
       message
     });
-    setStatus('Mensaje enviado con éxito!');
+    return response.data;
   } catch (error) {
-    setStatus('Error enviando el mensaje');
     console.error(error);
     return { error: error.response?.data?.message || error.message }
   }
@@ -117,14 +134,46 @@ const putDataEdit = async (data) => {
 };
 
 const getAllUser = async () => {
-  try {
-    const data = await api.get("/citas/users")
-    return data.data
-  } catch (error) {
-    console.error(error)
-    return { error: error.response?.data?.message || error.message }
-  }
+  const response = await api.get("/citas/users");
+  return response.data;
 }
+
+const getPractitioners = async (includeInactive = false) => {
+  const response = await api.get("/practitioners", {
+    params: includeInactive ? { includeInactive: true } : {},
+  });
+  return response.data;
+};
+
+const createPractitioner = async (data) => {
+  const response = await api.post("/practitioners", data);
+  return response.data;
+};
+
+const updatePractitioner = async (id, data) => {
+  const response = await api.put(`/practitioners/${id}`, data);
+  return response.data;
+};
+
+const invitePractitioner = async (id, email) => {
+  const response = await api.post(`/practitioners/${id}/invite`, { email });
+  return response.data;
+};
+
+const getClinic = async () => {
+  const response = await api.get("/clinic");
+  return response.data;
+};
+
+const updateClinic = async (data) => {
+  const response = await api.put("/clinic", data);
+  return response.data;
+};
+
+const getSystemStatus = async () => {
+  const response = await api.get("/system-status");
+  return response.data;
+};
 
 const postCustomerCreate = async (data) => {
   try {
@@ -194,6 +243,66 @@ const getAllDoc = async (id) => {
   }
 }
 
+const getCustomerDetail = async (id) => {
+  const response = await api.get(`/customers/detail/${id}`);
+  return response.data;
+};
+
+const uploadCustomerDocument = async (customerId, file) => {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await api.post(`/docs/customer/${customerId}/upload`, body);
+  return response.data;
+};
+
+const createCustomerTemplates = async (customerId) => {
+  const response = await api.post(`/docs/customer/${customerId}/templates`, {});
+  return response.data;
+};
+
+const uploadDocumentVersion = async (docId, file) => {
+  const body = new FormData();
+  body.append("file", file);
+  const response = await api.post(`/docs/file/${docId}/version`, body);
+  return response.data;
+};
+
+const getDocumentBlob = async (docId, version) => {
+  const response = await api.get(`/docs/file/${docId}/content`, {
+    params: version ? { version } : {},
+    responseType: "blob",
+  });
+  return response.data;
+};
+
+const getDocumentMetadata = async (docId) => {
+  const response = await api.get(`/docs/file/${docId}`);
+  return response.data;
+};
+
+const downloadDocument = async (docId, fileName, version) => {
+  const response = await api.get(`/docs/file/${docId}/content`, {
+    params: { download: true, ...(version ? { version } : {}) },
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName || "documento";
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
+const downloadFullExport = async () => {
+  const response = await api.get("/docs/export/all", { responseType: "blob" });
+  const url = URL.createObjectURL(response.data);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `TECA-export-${new Date().toISOString().slice(0, 10)}.zip`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
+
 const getAllFcihas = async (id) => {
   try {
     const response = await api.get(`/docs/ficha/${id}`)
@@ -259,6 +368,13 @@ export {
   tryLogin,
   tryRegister,
   tryLogout,
+  getCurrentUser,
+  forgotPassword,
+  resetPassword,
+  updateProfile,
+  updatePassword,
+  getEmployees,
+  updateEmployee,
   getDataCalendario,
   getFormDateCreate,
   getFormDateUser,
@@ -267,6 +383,13 @@ export {
   sendSms,
   putDataEdit,
   getAllUser,
+  getPractitioners,
+  createPractitioner,
+  updatePractitioner,
+  invitePractitioner,
+  getClinic,
+  updateClinic,
+  getSystemStatus,
   postCustomerCreate,
   getAllCustomers,
   getCustomerEdit,
@@ -274,6 +397,14 @@ export {
   getCustomerDate,
   deteleCustomeRelation,
   getAllDoc,
+  getCustomerDetail,
+  uploadCustomerDocument,
+  createCustomerTemplates,
+  uploadDocumentVersion,
+  getDocumentBlob,
+  getDocumentMetadata,
+  downloadDocument,
+  downloadFullExport,
   getAllFcihas,
   postFcihaCreate,
   DeleteFciha,

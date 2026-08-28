@@ -1,130 +1,43 @@
-import { useForm } from "react-hook-form";
-import { tryLogin } from "@/API";
-import { useNavigate } from "react-router";
 import { useState } from "react";
-import { useEffect } from "react";
-import InputForm from "../components/InputForm";
-import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-
-// import "@/assets/form.css";
+import { Link, useLocation, useNavigate } from "react-router";
+import { useForm } from "react-hook-form";
+import { FiArrowRight, FiEye, FiEyeOff, FiLock, FiShield } from "react-icons/fi";
+import { useAuth } from "@/context/AuthContext";
 
 const PageLogin = () => {
-  const [viewPassword, setViewPassword] = useState(false);
-
   const navigate = useNavigate();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-  } = useForm();
+  const location = useLocation();
+  const { login } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const { register, handleSubmit, formState: { errors } } = useForm({ defaultValues: { rememberMe: false } });
 
-  const onSubmit = async (data) => {
-    try {
-      await tryLogin(data);
-      navigate("/home");
-      reset();
-    } catch (error) {
-      console.error("Error en el login:", error);
-    }
+  const submit = async (data) => {
+    setLoginError("");
+    try { await login({ ...data, email: data.email.trim() }); navigate("/home", { replace: true }); }
+    catch (error) { setLoginError(error.response?.status === 429 ? "Demasiados intentos. Espera unos minutos." : "Email o contraseña incorrectos."); }
   };
 
-  useEffect(() => {
-    const x = document.getElementById("inputPassword");
-    if (viewPassword) {
-      x.type = "text";
-    } else {
-      x.type = "password";
-    }
-  }, [viewPassword]);
-
   return (
-    <div className="bg-white w-full h-screen flex justify-center items-center">
-      <form
-        id="login"
-        onSubmit={handleSubmit(onSubmit)}
-        className="flex flex-col gap-5 bg-gray-100 rounded-lg shadow-lg py-20 px-15 w-96 "
-      >
-        <div className="flex flex-row gap-5 items-center">
-          {/* <label id="email">Email</label>
-          <input
-            type="text"
-            {...register("email", { required: true })}
-            onInput={(e) => setValue("email", e.target.value.trim())}
-          /> */}
-          <label id="email" className="text-sm font-medium w-30 text-right">
-            Email
-          </label>
-          <input
-            id="email"
-            className="w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 
-              hover:outline-1 hover:outline-white 
-              focus-visible:outline-1 focus-visible:outline-white"
-            placeholder="Ej. ejemplo@gmail.com"
-            type="text"
-            {...register("email", { required: true })}
-            onInput={(e) => setValue("email", e.target.value.trim())}
-          />
-        </div>
-
-        {errors.email && <p style={{ color: "red" }}>Campo requerido</p>}
-        <div className="flex flex-row gap-5 items-center relative">
-          {/* <label id="password">Password</label>
-          <input
-            id="inputPassword"
-            type="password"
-            {...register("password", {
-              required: true,
-              pattern: {
-                value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{7,}$/gm,
-                message: "La contraseña no cumple los parametros",
-              },
-            })}
-          /> */}
-
-          <label id="password" className="text-sm font-medium w-30 text-right">
-            Contraseña
-          </label>
-          <input
-            id="inputPassword"
-            className="w-full bg-white p-2 rounded border border-gray-300 text-black text-sm focus:ring-2 focus:ring-emerald-400 
-            hover:outline-1 hover:outline-white 
-            focus-visible:outline-1 focus-visible:outline-white"
-            placeholder="Ej. *********"
-            type="password"
-            {...register("password", {
-              required: true,
-              pattern: {
-                value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{7,}$/gm,
-                message: "La contraseña no cumple los parametros",
-              },
-            })}
-            onInput={(e) => setValue("password", e.target.value.trim())}
-          />
-
-          <a
-            id="viewPassword"
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setViewPassword((prev) => !prev);
-            }}
-            className="absolute top-auto right-4"
-          >
-            {viewPassword ? <AiOutlineEye /> : <AiOutlineEyeInvisible/>}
-          </a>
-        </div>
-
-        {errors.password?.type === "required" && (
-          <p style={{ color: "red" }}>Campo requerido</p>
-        )}
-        {errors.password?.type === "pattern" && (
-          <p style={{ color: "red" }}>{errors.password.message}</p>
-        )}
-        <button className="bg-emerald-500 text-white w-full px-4 py-2 rounded cursor-pointer transition-transform duration-200 hover:scale-105">Inicar sesión</button>
-      </form>
-    </div>
+    <main className="auth-page">
+      <section className="auth-intro">
+        <div className="auth-brand"><span className="brand-mark">T</span><div><strong>TECA</strong><small>Gestión clínica</small></div></div>
+        <div><span className="auth-icon"><FiShield /></span><h1>Tu clínica, organizada y segura.</h1><p>Agenda, pacientes y documentación clínica protegidos en un único espacio de trabajo.</p></div>
+        <small>Centro de Osteopatía TECA</small>
+      </section>
+      <section className="auth-form-side">
+        <form className="auth-card" onSubmit={handleSubmit(submit)}>
+          <div><p className="page-kicker">Acceso profesional</p><h2>Bienvenido de nuevo</h2><p className="page-subtitle">Introduce tus credenciales para continuar.</p></div>
+          {location.state?.passwordChanged && <p className="status-message">Contraseña actualizada. Ya puedes iniciar sesión.</p>}
+          <label className="field"><span>Email</span><input type="email" autoComplete="username" placeholder="nombre@teca.es" {...register("email", { required: true })} />{errors.email && <small className="helper" style={{ color: "var(--danger)" }}>Escribe tu email.</small>}</label>
+          <label className="field"><span>Contraseña</span><div style={{ position: "relative" }}><input type={showPassword ? "text" : "password"} autoComplete="current-password" style={{ paddingRight: 44 }} {...register("password", { required: true })} /><button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}>{showPassword ? <FiEyeOff /> : <FiEye />}</button></div>{errors.password && <small className="helper" style={{ color: "var(--danger)" }}>Escribe tu contraseña.</small>}</label>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, fontSize: 13 }}><label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" {...register("rememberMe")} /> Recordarme 30 días</label><Link to="/forgot-password" style={{ color: "var(--primary)", fontWeight: 700 }}>¿Olvidaste la contraseña?</Link></div>
+          {loginError && <p className="status-message is-error" role="alert">{loginError}</p>}
+          <button className="button-primary" style={{ minHeight: 48 }}>Iniciar sesión <FiArrowRight /></button>
+          <p className="helper" style={{ textAlign: "center", margin: 0 }}><FiLock style={{ verticalAlign: "middle" }} /> Sesión cifrada y cookies HttpOnly</p>
+        </form>
+      </section>
+    </main>
   );
 };
 

@@ -4,12 +4,13 @@ import AutocompleteInput from "../components/AutocompleteInput";
 import { useEffect, useState } from "react";
 import Calendario from "../components/CalendarioFormCreate";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { getFormDateCreate, postDataCreate } from "../API";
+import { getFormDateCreate, getFormDateUser, postDataCreate } from "../API";
 import { useAtom } from "jotai";
 import citaSeleccionada from "../context/CitaSeleccionada";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 
 const PageCreateDate = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [valorCitaSeleccionada, setValorCitaSeleccionada] =
     useAtom(citaSeleccionada);
@@ -33,11 +34,11 @@ const PageCreateDate = () => {
     },
   });
 
-  const { data: citasOcupdasEmpleado, error: error2 } = useQuery({
+  const { data: citasOcupdasEmpleado } = useQuery({
     queryKey: ["citasDisponible", idUser],
     queryFn: async () => {
       if (idUser) {
-        setCitaSeleccionadaContext(null);
+        setValorCitaSeleccionada(null);
         return getFormDateUser(idUser);
       }
       return [];
@@ -137,8 +138,11 @@ const PageCreateDate = () => {
     reset,
     setValue,
     watch,
-    data,
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      userId: location.state?.userId || "",
+    },
+  });
 
   const watchAllFields = watch();
 
@@ -148,25 +152,25 @@ const PageCreateDate = () => {
   const watchTime = watch("time");
 
   useEffect(() => {
-    if (watchAllFields.userId) {
-      setIdUser(watchAllFields.userId);
+    if (watchUserId) {
+      setIdUser(watchUserId);
     }
-    if (watchAllFields.time) {
-      setTimeUser(watchAllFields.time);
+    if (watchTime) {
+      setTimeUser(watchTime);
     }
   }, [watchUserId, watchTime]);
 
   useEffect(() => {
-    if (watchAllFields.hour && watchAllFields.date) {
+    if (watchHour && watchDate) {
       setValorCitaSeleccionada(
         convertToCustomFormat(
-          new Date(`${watchAllFields.date} ${watchAllFields.hour}`)
+          new Date(`${watchDate} ${watchHour}`)
         )
       );
       setShowCalenda(true);
       setValue("hour", "");
     }
-  }, [watchHour, watchDate]);
+  }, [setValorCitaSeleccionada, setValue, watchHour, watchDate]);
 
   const times = [
     { name: "10 minutos", id: 10 },

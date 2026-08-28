@@ -1,6 +1,14 @@
 const InputForm = (data) => {
-  const { label, placeholder, textError, id, error, textAltInput, ...rest } =
-    data;
+  const {
+    label,
+    placeholder,
+    textError,
+    id,
+    error,
+    textAltInput,
+    allowEmpty,
+    ...rest
+  } = data;
 
   if (rest.type === "select") {
     return (
@@ -17,8 +25,8 @@ const InputForm = (data) => {
           defaultValue={rest.value ?? ""}
           {...rest}
         >
-          <option value="" disabled hidden>
-            Seleccione una opción
+          <option value="" disabled={!allowEmpty} hidden={!allowEmpty}>
+            {allowEmpty ? "Sin especificar" : "Seleccione una opción"}
           </option>
           {rest.options?.map((user) => (
             <option key={user.id} value={user.id}>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Editor WebAssembly de TECA</title>
+  <style>
+    *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,system-ui,sans-serif;background:#eef3f0;color:#14221d}
+    body{display:flex;flex-direction:column;overflow:hidden}.bar{height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;background:#fff;border-bottom:1px solid #dfe7e3}.bar strong{flex:1}.bar button{height:36px;padding:0 14px;border:0;border-radius:8px;color:#fff;background:#006c49;font-weight:700;cursor:pointer}.bar button:disabled{opacity:.55;cursor:wait}
+    .canvas-wrap{position:relative;flex:1;min-height:0}#qtcanvas{width:100%;height:100%;border:0;padding:0;outline:0;visibility:hidden}.loading{position:absolute;inset:0;display:grid;place-items:center;background:#f6f8f7;z-index:2;text-align:center}.spinner{width:42px;height:42px;margin:0 auto 12px;border:4px solid #cfe0d8;border-top-color:#006c49;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error{color:#a8251b;max-width:560px;padding:24px}
+  </style>
+</head>
+<body>
+  <header class="bar"><strong id="fileLabel">Preparando LibreOffice…</strong><span id="stateLabel"></span><button id="saveButton" disabled>Guardar nueva versión</button></header>
+  <div class="canvas-wrap" onselectstart="event.preventDefault()">
+    <div id="loading" class="loading"><div><div class="spinner"></div><strong>Cargando LibreOffice en tu navegador</strong><p>La primera vez puede tardar un poco.</p></div></div>
+    <canvas id="qtcanvas" contenteditable="true" oncontextmenu="event.preventDefault()" onkeydown="event.preventDefault()"></canvas>
+  </div>
+  <script>
+    'use strict';
+    const trustedOrigin = location.origin;
+    const runtime = new URLSearchParams(location.search).get('runtime') || '/office/runtime/';
+    const runtimeBase = new URL(runtime, location.href).toString();
+    const canvas = document.getElementById('qtcanvas');
+    const loading = document.getElementById('loading');
+    const saveButton = document.getElementById('saveButton');
+    const fileLabel = document.getElementById('fileLabel');
+    const stateLabel = document.getElementById('stateLabel');
+    let filename = '';
+    let threadPort;
+
+    var Module = {
+      canvas,
+      uno_scripts: ['/office/vendor/zeta.js', '/office/office_thread.js'],
+      locateFile: (file, prefix) => (prefix || runtimeBase) + file,
+    };
+    Module.mainScriptUrlOrBlob = new Blob([`importScripts('${runtimeBase}soffice.js');`], { type: 'text/javascript' });
+
+    function fail(message) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'error';
+      const heading = document.createElement('strong');
+      heading.textContent = 'No se ha podido iniciar el editor';
+      const detail = document.createElement('p');
+      detail.textContent = message;
+      wrapper.append(heading, detail);
+      loading.replaceChildren(wrapper);
+      parent.postMessage({ source: 'teca-office', cmd: 'error', message }, trustedOrigin);
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== trustedOrigin || event.data?.source !== 'teca') return;
+      if (event.data.cmd === 'open') {
+        filename = event.data.filename.replace(/[\\/]/g, '-');
+        fileLabel.textContent = filename;
+        try { FS.mkdir('/tmp/office'); } catch {}
+        FS.writeFile(`/tmp/office/${filename}`, new Uint8Array(event.data.buffer));
+        loading.style.display = 'grid';
+        threadPort.postMessage({ cmd: 'upload', filename });
+      }
+    });
+
+    saveButton.addEventListener('click', () => {
+      saveButton.disabled = true;
+      stateLabel.textContent = 'Guardando…';
+      threadPort.postMessage({ cmd: 'download' });
+    });
+    canvas.addEventListener('wheel', (event) => event.preventDefault(), { passive: false });
+
+    const script = document.createElement('script');
+    script.src = `${runtimeBase}soffice.js`;
+    script.onerror = () => fail('El runtime WebAssembly no está instalado o no es accesible. Ejecuta npm run office:runtime y publica public/office/runtime.');
+    script.onload = () => Module.uno_main.then((port) => {
+      threadPort = port;
+      threadPort.onmessage = (event) => {
+        if (event.data.cmd === 'thr_running') parent.postMessage({ source: 'teca-office', cmd: 'runtime_ready' }, trustedOrigin);
+        else if (event.data.cmd === 'ui_ready') {
+          window.dispatchEvent(new Event('resize'));
+          setTimeout(() => { loading.style.display = 'none'; canvas.style.visibility = 'visible'; saveButton.disabled = false; stateLabel.textContent = 'Listo'; }, 700);
+        } else if (event.data.cmd === 'download') {
+          const bytes = FS.readFile(`/tmp/office/${filename}`);
+          const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+          saveButton.disabled = false;
+          stateLabel.textContent = 'Cambios preparados';
+          parent.postMessage({ source: 'teca-office', cmd: 'save', filename, buffer }, trustedOrigin, [buffer]);
+        }
+      };
+    }).catch((error) => fail(error.message || 'Error al iniciar LibreOffice WebAssembly.'));
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

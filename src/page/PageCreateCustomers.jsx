@@ -1,484 +1,94 @@
-import InputForm from "../components/InputForm";
-import { useForm } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { postCustomerCreate } from "../API";
 import { useNavigate } from "react-router";
+import { FiArrowLeft, FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
+import { postCustomerCreate } from "@/API";
 
-const PageCustomers = () => {
+const initial = {
+  fullName: "", dateBirth: "", emailAddress: "", preferredCommunication: "",
+  profession: "", address: "", population: "", province: "", cD: "", weight: "", height: "",
+};
+
+const PageCreateCustomers = () => {
   const navigate = useNavigate();
-
-  const [arrayPhone, setArrayPhone] = useState([]);
-  const [phone, setPhone] = useState({ phoneNumber: "", countryCode: "+34" });
-  const [howMuchChildren, setHowMuchChildren] = useState(0);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm();
-
+  const [form, setForm] = useState(initial);
+  const [phones, setPhones] = useState([]);
+  const [phone, setPhone] = useState({ rawValue: "", label: "Móvil", kind: "MOBILE" });
+  const [more, setMore] = useState(false);
   const mutation = useMutation({
-    mutationFn: async (data) => {
-      postCustomerCreate(data);
-    },
-    onSuccess: () => {
-      navigate("/customers");
-    },
+    mutationFn: postCustomerCreate,
+    onSuccess: (response) => navigate(`/customers/${response.customer.id}`),
   });
 
-  const countryPrefixes = [
-    { id: "+1", prefix: "+1", name: "🇺🇸 Estados Unidos (+1)" },
-    { id: "+34", prefix: "+34", name: "🇪🇸 España (+34)" },
-    { id: "+33", prefix: "+33", name: "🇫🇷 Francia (+33)" },
-    { id: "+44", prefix: "+44", name: "🇬🇧 Reino Unido (+44)" },
-    { id: "+49", prefix: "+49", name: "🇩🇪 Alemania (+49)" },
-    { id: "+39", prefix: "+39", name: "🇮🇹 Italia (+39)" },
-    { id: "+52", prefix: "+52", name: "🇲🇽 México (+52)" },
-    { id: "+54", prefix: "+54", name: "🇦🇷 Argentina (+54)" },
-    { id: "+55", prefix: "+55", name: "🇧🇷 Brasil (+55)" },
-    { id: "+56", prefix: "+56", name: "🇨🇱 Chile (+56)" },
-    { id: "+57", prefix: "+57", name: "🇨🇴 Colombia (+57)" },
-    { id: "+32", prefix: "+32", name: "🇧🇪 Bélgica (+32)" },
-    { id: "+31", prefix: "+31", name: "🇳🇱 Países Bajos (+31)" },
-    { id: "+41", prefix: "+41", name: "🇨🇭 Suiza (+41)" },
-    { id: "+7", prefix: "+7", name: "🇷🇺 Rusia (+7)" },
-    { id: "+61", prefix: "+61", name: "🇦🇺 Australia (+61)" },
-    { id: "+86", prefix: "+86", name: "🇨🇳 China (+86)" },
-    { id: "+81", prefix: "+81", name: "🇯🇵 Japón (+81)" },
-    { id: "+82", prefix: "+82", name: "🇰🇷 Corea del Sur (+82)" },
-    { id: "+91", prefix: "+91", name: "🇮🇳 India (+91)" },
-    { id: "+27", prefix: "+27", name: "🇿🇦 Sudáfrica (+27)" },
-    { id: "+966", prefix: "+966", name: "🇸🇦 Arabia Saudita (+966)" },
-    { id: "+971", prefix: "+971", name: "🇦🇪 Emiratos Árabes Unidos (+971)" },
-    { id: "+92", prefix: "+92", name: "🇵🇰 Pakistán (+92)" },
-    { id: "+90", prefix: "+90", name: "🇹🇷 Turquía (+90)" },
-    { id: "+66", prefix: "+66", name: "🇹🇭 Tailandia (+66)" },
-    { id: "+64", prefix: "+64", name: "🇳🇿 Nueva Zelanda (+64)" },
-    { id: "+20", prefix: "+20", name: "🇪🇬 Egipto (+20)" },
-    { id: "+212", prefix: "+212", name: "🇲🇦 Marruecos (+212)" },
-    { id: "+213", prefix: "+213", name: "🇩🇿 Argelia (+213)" },
-    { id: "+351", prefix: "+351", name: "🇵🇹 Portugal (+351)" },
-    { id: "+48", prefix: "+48", name: "🇵🇱 Polonia (+48)" },
-    { id: "+420", prefix: "+420", name: "🇨🇿 República Checa (+420)" },
-    { id: "+43", prefix: "+43", name: "🇦🇹 Austria (+43)" },
-    { id: "+30", prefix: "+30", name: "🇬🇷 Grecia (+30)" },
-    { id: "+46", prefix: "+46", name: "🇸🇪 Suecia (+46)" },
-    { id: "+47", prefix: "+47", name: "🇳🇴 Noruega (+47)" },
-    { id: "+358", prefix: "+358", name: "🇫🇮 Finlandia (+358)" },
-    { id: "+63", prefix: "+63", name: "🇵🇭 Filipinas (+63)" },
-    { id: "+62", prefix: "+62", name: "🇮🇩 Indonesia (+62)" },
-    { id: "+98", prefix: "+98", name: "🇮🇷 Irán (+98)" },
-    { id: "+972", prefix: "+972", name: "🇮🇱 Israel (+972)" },
-    { id: "+234", prefix: "+234", name: "🇳🇬 Nigeria (+234)" },
-    { id: "+254", prefix: "+254", name: "🇰🇪 Kenia (+254)" },
-    { id: "+256", prefix: "+256", name: "🇺🇬 Uganda (+256)" },
-    { id: "+84", prefix: "+84", name: "🇻🇳 Vietnam (+84)" },
-  ];
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const addPhone = () => {
+    if (!phone.rawValue.trim()) return;
+    setPhones((current) => [...current, { ...phone, rawValue: phone.rawValue.trim(), isCommunicationPhone: current.length === 0 }]);
+    setPhone({ rawValue: "", label: "Móvil", kind: "MOBILE" });
+  };
 
-  const dataProvince = [
-    { id: "OTRO", name: "Otro" },
-    { id: "ALAVA", name: "Álava" },
-    { id: "ALBACETE", name: "Albacete" },
-    { id: "ALICANTE", name: "Alicante" },
-    { id: "ALMERIA", name: "Almería" },
-    { id: "ASTURIAS", name: "Asturias" },
-    { id: "AVILA", name: "Ávila" },
-    { id: "BADAJOZ", name: "Badajoz" },
-    { id: "BARCELONA", name: "Barcelona" },
-    { id: "BURGOS", name: "Burgos" },
-    { id: "CACERES", name: "Cáceres" },
-    { id: "CADIZ", name: "Cádiz" },
-    { id: "CANTABRIA", name: "Cantabria" },
-    { id: "CASTELLON", name: "Castellón" },
-    { id: "CIUDAD_REAL", name: "Ciudad Real" },
-    { id: "CORDOBA", name: "Córdoba" },
-    { id: "LA_CORUNA", name: "La Coruña" },
-    { id: "CUENCA", name: "Cuenca" },
-    { id: "GERONA", name: "Gerona" },
-    { id: "GRANADA", name: "Granada" },
-    { id: "GUADALAJARA", name: "Guadalajara" },
-    { id: "GUIPUZCOA", name: "Guipúzcoa" },
-    { id: "HUELVA", name: "Huelva" },
-    { id: "HUESCA", name: "Huesca" },
-    { id: "ISLAS_BALEARES", name: "Islas Baleares" },
-    { id: "JAEN", name: "Jaén" },
-    { id: "LEON", name: "León" },
-    { id: "LERIDA", name: "Lérida" },
-    { id: "LUGO", name: "Lugo" },
-    { id: "MADRID", name: "Madrid" },
-    { id: "MALAGA", name: "Málaga" },
-    { id: "MURCIA", name: "Murcia" },
-    { id: "NAVARRA", name: "Navarra" },
-    { id: "ORENSE", name: "Orense" },
-    { id: "PALENCIA", name: "Palencia" },
-    { id: "LAS_PALMAS", name: "Las Palmas" },
-    { id: "PONTEVEDRA", name: "Pontevedra" },
-    { id: "LA_RIOJA", name: "La Rioja" },
-    { id: "SALAMANCA", name: "Salamanca" },
-    { id: "SEGOVIA", name: "Segovia" },
-    { id: "SEVILLA", name: "Sevilla" },
-    { id: "SORIA", name: "Soria" },
-    { id: "TARRAGONA", name: "Tarragona" },
-    { id: "SANTA_CRUZ_DE_TENERIFE", name: "Santa Cruz de Tenerife" },
-    { id: "TERUEL", name: "Teruel" },
-    { id: "TOLEDO", name: "Toledo" },
-    { id: "VALENCIA", name: "Valencia" },
-    { id: "VALLADOLID", name: "Valladolid" },
-    { id: "VIZCAYA", name: "Vizcaya" },
-    { id: "ZAMORA", name: "Zamora" },
-    { id: "ZARAGOZA", name: "Zaragoza" },
-  ];
-
-  const preferredValues = [
-    { id: "WHATSAPP", name: "Whatsapp" },
-    { id: "SMS", name: "SMS" },
-    { id: "EMAIL", name: "Email" },
-    { id: "PHONE", name: "Llamada" },
-  ];
-
-  const watchAge = watch("dateBirth");
-
-  useEffect(() => {
-    if (watchAge) {
-      function calcularEdad(fecha) {
-        var hoy = new Date();
-        var cumpleanos = new Date(fecha);
-        var edad = hoy.getFullYear() - cumpleanos.getFullYear();
-        var m = hoy.getMonth() - cumpleanos.getMonth();
-
-        if (m < 0 || (m === 0 && hoy.getDate() < cumpleanos.getDate())) {
-          edad--;
-        }
-
-        return edad;
-      }
-
-      const newAge = calcularEdad(watchAge);
-
-      setValue("age", newAge);
-    }
-  }, [watchAge, setValue]);
-
-  const submit = (data) => {
-    const dataMutation = {
-      ...data,
-      children: howMuchChildren,
-      PhoneNumber: arrayPhone.map((elPhone) => {
-        const prefijoPhone = `${elPhone.countryCode} ${elPhone.phoneNumber}`;
-        if (prefijoPhone === data.preferredPhone) {
-          return {
-            ...elPhone,
-            isCommunicationPhone: true,
-            phoneNumber: +elPhone.phoneNumber,
-          };
-        } else {
-          return {
-            ...elPhone,
-            isCommunicationPhone: false,
-            phoneNumber: +elPhone.phoneNumber,
-          };
-        }
-      }),
-    };
-    mutation.mutate(dataMutation);
+  const submit = (event) => {
+    event.preventDefault();
+    mutation.mutate({
+      ...form,
+      dateBirth: form.dateBirth || null,
+      cD: form.cD || null,
+      weight: form.weight || null,
+      height: form.height || null,
+      province: form.province || null,
+      PhoneNumber: phones,
+    });
   };
 
   return (
-    <div className="flex justify-center items-center flex-col w-6xl mx-auto gap-5 bg-gray-100 mt-10 p-5 rounded-lg shadow-lg">
-      <h2 className="text-2xl">Formulairo de Alta</h2>
-      <form
-        onSubmit={handleSubmit(submit)}
-        className="flex flex-col items-start justify-center gap-5 w-full bg-white  p-5 rounded-lg shadow-lg"
-      >
-        <h3 className="text-2xl font-bold">Datos personales</h3>
-        <div className="flex flex-row gap-5 w-full items-start">
-          <InputForm
-            label="Nombre Completo"
-            placeholder="Ej: Juan Pérez"
-            textError="Este campo es Obligatorio"
-            type="text"
-            id="fullName"
-            error={errors.fullName}
-            {...register("fullName", { required: true })}
-          />
-          <div>
-            <InputForm
-              label="Fecha de Nacimiento"
-              textError="Este campo es Obligatorio"
-              type="date"
-              id="dateBirth"
-              error={errors.dateBirth}
-              {...register("dateBirth", { required: true })}
-            />
-          </div>
-          <div className="flex flex-row gap-5 w-80">
-            <InputForm
-              label="Edad"
-              placeholder="Ej: 30"
-              textError="Este campo es Obligatorio"
-              type="number"
-              id="age"
-              min={0}
-              disabled={true}
-              {...register("age", { required: true })}
-            />
-          </div>
-          <div className="w-2xl flex flex-row gap-5 items-start">
-            <InputForm
-              label="Peso (kg)"
-              placeholder="Ej: 70"
-              textError="Este campo es Obligatorio"
-              type="number"
-              id="weight"
-              min={0}
-              error={errors.weight}
-              {...register("weight", { required: true })}
-            />
-            <InputForm
-              label="Altura (cm)"
-              placeholder="Ej: 175"
-              textError="Este campo es Obligatorio"
-              type="number"
-              id="height"
-              error={errors.height}
-              {...register("height", { required: true })}
-            />
-          </div>
-          <InputForm
-            label="Profesión"
-            placeholder="Ej: Médico, Ingeniero, Profesor..."
-            textError="Este campo es Obligatorio"
-            type="text"
-            id="profession"
-            error={errors.profession}
-            {...register("profession", { required: true })}
-          />
-        </div>
-        <hr className="border-solid border-1 w-full border-gray-200 rounded-xs my-2" />
+    <main className="page" style={{ maxWidth: 980 }}>
+      <button type="button" className="button-ghost" style={{ marginBottom: 12, paddingLeft: 0 }} onClick={() => navigate("/customers")}><FiArrowLeft /> Volver a clientes</button>
+      <header className="page-header"><div><p className="page-kicker">Alta de paciente</p><h1 className="page-title">Nuevo cliente</h1><p className="page-subtitle">Solo el nombre completo es imprescindible. Podrás completar lo demás cuando quieras.</p></div></header>
 
-        <h3 className="text-2xl font-bold">Datos de contacto</h3>
-        <div className="flex flex-row gap-5 w-full items-start justify-start">
+      <form onSubmit={submit} className="card card-pad" style={{ display: "grid", gap: 22 }}>
+        <section style={{ display: "grid", gap: 14 }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>Datos imprescindibles</h2>
+          <label className="field"><span>Nombre completo *</span><input name="fullName" value={form.fullName} onChange={change} required maxLength={200} autoFocus placeholder="Nombre y apellidos" /></label>
+        </section>
 
-          <div className="flex flex-col gap-5 w-full items-start">
-            <div className="flex flex-row gap-5 w-full items-start">
-              <div className="w-1/6">
-                <InputForm
-                  label={"Pais"}
-                  textError="Este campo es Obligatorio"
-                  type="select"
-                  options={countryPrefixes}
-                  id="countryCode"
-                  onInput={(e) => {
-                    setPhone({ ...phone, countryCode: e.target.value });
-                  }}
-                  defaultValue={countryPrefixes[1].id}
-                  error={errors.countryCode}
-                  {...register("countryCode")}
-                />
-              </div>
-              <div className="w-3/6">
-                <InputForm
-                  label="Teléfono"
-                  placeholder="Ej: 666 123 456"
-                  textError="Este campo es Obligatorio"
-                  type="number"
-                  id="phone"
-                  onInput={(e) => {
-                    setPhone({ ...phone, phoneNumber: e.target.value });
-                  }}
-                  {...register("phone")}
-                />
-              </div>
-              <div className="w-2/6">
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (phone.phoneNumber) {
-                      setArrayPhone((prev) => [...prev, { ...phone }]);
-                      setPhone({ phoneNumber: "", countryCode: "+34" });
-                      setValue("countryCode", "+34");
-                      setValue("phone", "");
-                    }
-                  }}
-                  className="bg-emerald-500 text-white w-full px-4 py-2 rounded mt-7 cursor-pointer transition-transform duration-200 hover:scale-105"
-                >
-                  Añadir
-                </button>
-              </div>
+        <section style={{ display: "grid", gap: 14, paddingTop: 20, borderTop: "1px solid var(--line)" }}>
+          <div><h2 style={{ margin: 0, fontSize: 18 }}>Contacto <span className="helper">(opcional)</span></h2><p className="helper">Acepta números antiguos, texto libre y varios teléfonos con el mismo nombre.</p></div>
+          <div className="phone-entry-grid" style={{ display: "grid", gridTemplateColumns: "130px minmax(0,1fr) auto", gap: 9, alignItems: "end" }}>
+            <label className="field"><span>Etiqueta</span><input value={phone.label} onChange={(event) => setPhone((value) => ({ ...value, label: event.target.value }))} placeholder="Móvil, casa…" /></label>
+            <label className="field"><span>Teléfono o anotación</span><input value={phone.rawValue} onChange={(event) => setPhone((value) => ({ ...value, rawValue: event.target.value }))} placeholder="600 123 456 / madre: 91…" /></label>
+            <button type="button" className="button-secondary" onClick={addPhone}><FiPlus /> Añadir</button>
+          </div>
+          {phones.map((item, index) => (
+            <div key={`${item.rawValue}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", borderRadius: 9, background: "#f7faf8" }}>
+              <label style={{ display: "flex", gap: 9, alignItems: "center" }}><input type="radio" checked={item.isCommunicationPhone} onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))} /> <strong>{item.label || "Teléfono"}</strong> {item.rawValue}</label>
+              <button type="button" className="icon-button" onClick={() => setPhones((values) => values.filter((_, position) => position !== index))}><FiTrash2 /></button>
             </div>
-            {arrayPhone.length !== 0 && (
-              <div className="w-full">
-                {arrayPhone.map((prefiPhone, i) => {
-                  return (
-                    <div
-                      key={i}
-                      className="flex flex-row justify-between items-center mb-2 w-full"
-                    >
-                      <label className="flex items-center gap-2 w-full">
-                        <input
-                          type="radio"
-                          name="preferredPhone"
-                          {...register("preferredPhone", {
-                            required: "Debes seleccionar un teléfono preferido",
-                          })}
-                          value={`${prefiPhone.countryCode} ${prefiPhone.phoneNumber}`}
-                          className="mr-2"
-                        />
-                        {prefiPhone.countryCode} {prefiPhone.phoneNumber}
-                      </label>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setArrayPhone((prev) =>
-                            prev.filter(
-                              (phone) =>
-                                !(
-                                  phone.countryCode ===
-                                    prefiPhone.countryCode &&
-                                  phone.phoneNumber === prefiPhone.phoneNumber
-                                )
-                            )
-                          );
-                        }}
-                        className="bg-red-500 text-white px-4 py-2 rounded cursor-pointer transition-transform duration-200 hover:scale-105"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  );
-                })}
-                {errors.preferredPhone && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.preferredPhone.message}
-                  </p>
-                )}
-                <p className="text-xs text-left mt-5">
-                  Elige un número de teléfono para establecer
-                  <br /> como tu preferencia de contacto.
-                </p>
-              </div>
-            )}
+          ))}
+          <div className="responsive-two" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <label className="field"><span>Email</span><input type="email" name="emailAddress" value={form.emailAddress} onChange={change} /></label>
+            <label className="field"><span>Comunicación preferida</span><select name="preferredCommunication" value={form.preferredCommunication} onChange={change}><option value="">Sin definir</option><option value="EMAIL">Email</option><option value="PHONE">Llamada</option><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option></select></label>
           </div>
-          <InputForm
-            label="Correo Electrónico"
-            placeholder="Ej: nombre@correo.com"
-            textError="Este campo es Obligatorio"
-            type="email"
-            id="emailAddress"
-            error={errors.emailAddress}
-            {...register("emailAddress")}
-          />
-          <InputForm
-            label="Medio de Comunicación Preferido"
-            textError="Este campo es Obligatorio"
-            type="select"
-            id="preferredCommunication"
-            options={preferredValues}
-            error={errors.preferredCommunication}
-            {...register("preferredCommunication", { required: true })}
-          />
-        </div>
-        <hr className="border-solid border-1 w-full border-gray-200 rounded-xs my-2" />
+        </section>
 
-        <h3 className="text-2xl font-bold ">Dirección</h3>
-        <div className="flex flex-row gap-5 w-full items-start">
-          <div className="w-2/10">
-            <InputForm
-              label={"Provincia (España)"}
-              textError="Este campo es Obligatorio"
-              type="select"
-              options={dataProvince}
-              id="province"
-              error={errors.province}
-              {...register("province", { required: true })}
-            />
-          </div>
-          <div className="w-3/10">
-            <InputForm
-              label="Población (España)"
-              placeholder="Introduce tu ciudad o pueblo"
-              textError="Este campo es Obligatorio"
-              type="text"
-              id="population"
-              error={errors.population}
-              {...register("population", { required: true })}
-            />
-          </div>
-          <div className="w-1/10">
-            <InputForm
-              label="Código Postal"
-              placeholder="Ej: 28053"
-              textError="Este campo es Obligatorio"
-              type="number"
-              min={0}
-              id="cD"
-              error={errors.cD}
-              {...register("cD", { required: true })}
-            />
-          </div>
-          <div className="w-4/10">
-            <InputForm
-              label="Dirección Completa"
-              placeholder="Introduce la dirección completa"
-              textError="Este campo es Obligatorio"
-              type="text"
-              id="address"
-              error={errors.address}
-              {...register("address", { required: true })}
-            />
-          </div>
-        </div>
-        <hr className="border-solid border-1 w-full border-gray-200 rounded-xs my-2" />
+        <button type="button" className="button-secondary" onClick={() => setMore((value) => !value)}>{more ? <FiChevronUp /> : <FiChevronDown />} {more ? "Ocultar datos opcionales" : "Añadir más datos opcionales"}</button>
+        {more && (
+          <section className="responsive-two" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 14 }}>
+            <label className="field"><span>Fecha de nacimiento</span><input type="date" name="dateBirth" value={form.dateBirth} onChange={change} /></label>
+            <label className="field"><span>Profesión</span><input name="profession" value={form.profession} onChange={change} /></label>
+            <label className="field"><span>Dirección</span><input name="address" value={form.address} onChange={change} /></label>
+            <label className="field"><span>Población</span><input name="population" value={form.population} onChange={change} /></label>
+            <label className="field"><span>Provincia</span><input name="province" value={form.province} onChange={(event) => setForm((current) => ({ ...current, province: event.target.value.toUpperCase().replaceAll(" ", "_") }))} placeholder="MADRID" /></label>
+            <label className="field"><span>Código postal</span><input name="cD" inputMode="numeric" value={form.cD} onChange={change} /></label>
+            <label className="field"><span>Peso (kg)</span><input type="number" min="0" name="weight" value={form.weight} onChange={change} /></label>
+            <label className="field"><span>Altura (cm)</span><input type="number" min="0" name="height" value={form.height} onChange={change} /></label>
+          </section>
+        )}
 
-        <h3 className="text-2xl font-bold">Otros datos</h3>
-        <div className="flex flex-row gap-5 w-full items-start">
-          <div className="w-1/15">
-            <InputForm
-              label="Nº Hijos"
-              placeholder="Ej: 2"
-              textError="Este campo es Obligatorio"
-              type="number"
-              min={0}
-              id="children"
-              onInput={(e) => {
-                setHowMuchChildren(e.target.value);
-              }}
-              error={errors.children}
-              {...register("children")}
-            />
-          </div>
-          <div className="w-3/15">
-            <InputForm
-              label="Observaciones sobre los Hijos"
-              placeholder="Algún comentario adicional"
-              textError="Este campo es Obligatorio"
-              type="text"
-              id="observationChildren"
-              disabled={howMuchChildren == 0 ? true : false}
-              error={errors.observationChildren}
-              {...register("observationChildren")}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-row justify-center gap-5 w-full">
-          <button
-            type="submit"
-            className={` text-white px-4 py-2 rounded ${
-              arrayPhone.length !== 0 &&
-              "bg-blue-500 cursor-pointer transition-transform duration-200 hover:scale-105"
-            } ${arrayPhone.length === 0 && "bg-blue-500/50"}`}
-            disabled={arrayPhone.length === 0}
-          >
-            Dar de alta al paciente
-          </button>
-        </div>
+        {mutation.isError && <p className="status-message is-error">{mutation.error.response?.data?.message || "No se ha podido crear el cliente"}</p>}
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 9 }}><button type="button" className="button-secondary" onClick={() => navigate("/customers")}>Cancelar</button><button className="button-primary" disabled={mutation.isPending}>{mutation.isPending ? "Creando…" : "Crear cliente"}</button></div>
       </form>
-    </div>
+    </main>
   );
 };
 
-export default PageCustomers;
+export default PageCreateCustomers;

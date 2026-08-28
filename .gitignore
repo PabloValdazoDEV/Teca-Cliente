@@ -1,3 +1,6 @@
 .env
 node_modules/
+dist/
+public/office/vendor/
+public/office/runtime/
 .DS_Store
