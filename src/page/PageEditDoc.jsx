@@ -200,10 +200,10 @@ const PageEditDoc = ({ customer, docId, registro }) => {
   };
 
   return (
-    <div className="flex justify-center items-center flex-col w-6xl mx-auto gap-5 bg-gray-100 mt-10 p-5 rounded-lg shadow-lg">
-      <form onSubmit={handleSubmit(submit)}>
-        <div className="flex flex-row justify-between w-full gap-5 mb-5 items-end">
-          <div className="w-2xl">
+    <div className="legacy-doc-modal-card">
+      <form className="legacy-doc-form" onSubmit={handleSubmit(submit)}>
+        <div className="legacy-doc-fields">
+          <div>
             <InputForm
               label={
                 <div className="text-left">
@@ -247,7 +247,8 @@ const PageEditDoc = ({ customer, docId, registro }) => {
             {...register("treatmentPlan")}
           />
         </div>
-        <table className="w-full bg-white h-40">
+        <div className="legacy-assessment-scroll" role="region" aria-label="Editar valoración corporal" tabIndex="0">
+        <table className="legacy-assessment-table w-full bg-white h-40">
           <thead>
             <tr className="bg-gray-300 text-left">
               <th className="border border-black px-2 py-1 text-sm" colSpan="2">
@@ -583,7 +584,8 @@ const PageEditDoc = ({ customer, docId, registro }) => {
             </tr>
           </tbody>
         </table>
-        <div className="flex flex-row justify-between w-full">
+        </div>
+        <div className="legacy-doc-actions">
           <button
             type="submit"
             className=" text-white px-4 py-2 rounded bg-blue-500 cursor-pointer transition-transform duration-200 hover:scale-105 mt-5"

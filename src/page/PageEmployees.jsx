@@ -128,7 +128,7 @@ const PageEmployees = () => {
                   </select>
                 </label>
 
-                <form style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 13, marginTop: 14 }} onSubmit={handleUpdate}>
+                <form className="employee-edit-form" onSubmit={handleUpdate}>
                   <label className="field">
                     <span>Nombre</span>
                     <input className={inputClass} name="name" onChange={handleChange} required value={form.name} />

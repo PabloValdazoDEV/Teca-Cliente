@@ -9,4 +9,4 @@ Preparación local y despliegue:
 3. `npm run build`
 4. Publicar `dist/`, incluyendo `dist/office/runtime/`.
 
-El runtime queda ignorado por Git debido a su tamaño. En Plesk deben servirse `.wasm` como `application/wasm` y los archivos `soffice.*` con caché pública larga. Para usar temporalmente el CDN oficial se puede definir `VITE_ZETA_OFFICE_RUNTIME_URL=https://cdn.zetaoffice.net/zetaoffice_latest/`, aunque en producción clínica se recomienda alojarlo en el mismo dominio.
+El runtime queda ignorado por Git debido a su tamaño. En Plesk deben servirse `.wasm` como `application/wasm` y los archivos `soffice.*` con caché pública larga. En producción se aloja en el mismo dominio que TECA: no debe configurarse un CDN ni una URL externa para `VITE_ZETA_OFFICE_RUNTIME_URL`.

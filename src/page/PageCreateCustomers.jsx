@@ -3,9 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { FiArrowLeft, FiChevronDown, FiChevronUp, FiPlus, FiTrash2 } from "react-icons/fi";
 import { postCustomerCreate } from "@/API";
+import PreferredCommunicationField from "@/components/PreferredCommunicationField";
 
 const initial = {
-  fullName: "", dateBirth: "", emailAddress: "", preferredCommunication: "",
+  fullName: "", dateBirth: "", emailAddress: "", preferredCommunication: "PHONE",
   profession: "", address: "", population: "", province: "", cD: "", weight: "", height: "",
 };
 
@@ -45,7 +46,7 @@ const PageCreateCustomers = () => {
       <button type="button" className="button-ghost" style={{ marginBottom: 12, paddingLeft: 0 }} onClick={() => navigate("/customers")}><FiArrowLeft /> Volver a clientes</button>
       <header className="page-header"><div><p className="page-kicker">Alta de paciente</p><h1 className="page-title">Nuevo cliente</h1><p className="page-subtitle">Solo el nombre completo es imprescindible. Podrás completar lo demás cuando quieras.</p></div></header>
 
-      <form onSubmit={submit} className="card card-pad" style={{ display: "grid", gap: 22 }}>
+      <form onSubmit={submit} className="card card-pad customer-form-card" style={{ display: "grid", gap: 22 }}>
         <section style={{ display: "grid", gap: 14 }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>Datos imprescindibles</h2>
           <label className="field"><span>Nombre completo *</span><input name="fullName" value={form.fullName} onChange={change} required maxLength={200} autoFocus placeholder="Nombre y apellidos" /></label>
@@ -59,14 +60,14 @@ const PageCreateCustomers = () => {
             <button type="button" className="button-secondary" onClick={addPhone}><FiPlus /> Añadir</button>
           </div>
           {phones.map((item, index) => (
-            <div key={`${item.rawValue}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "9px 12px", borderRadius: 9, background: "#f7faf8" }}>
-              <label style={{ display: "flex", gap: 9, alignItems: "center" }}><input type="radio" checked={item.isCommunicationPhone} onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))} /> <strong>{item.label || "Teléfono"}</strong> {item.rawValue}</label>
-              <button type="button" className="icon-button" onClick={() => setPhones((values) => values.filter((_, position) => position !== index))}><FiTrash2 /></button>
+            <div key={`${item.rawValue}-${index}`} className="phone-list-item">
+              <label className="phone-list-label"><input type="radio" checked={item.isCommunicationPhone} onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))} /> <span><strong>{item.label || "Teléfono"}</strong> {item.rawValue}</span></label>
+              <button type="button" className="icon-button" aria-label={`Eliminar ${item.label || "teléfono"}`} onClick={() => setPhones((values) => values.filter((_, position) => position !== index))}><FiTrash2 /></button>
             </div>
           ))}
           <div className="responsive-two" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label className="field"><span>Email</span><input type="email" name="emailAddress" value={form.emailAddress} onChange={change} /></label>
-            <label className="field"><span>Comunicación preferida</span><select name="preferredCommunication" value={form.preferredCommunication} onChange={change}><option value="">Sin definir</option><option value="EMAIL">Email</option><option value="PHONE">Llamada</option><option value="WHATSAPP">WhatsApp</option><option value="SMS">SMS</option></select></label>
+            <PreferredCommunicationField value={form.preferredCommunication} onChange={change} />
           </div>
         </section>
 
@@ -85,7 +86,7 @@ const PageCreateCustomers = () => {
         )}
 
         {mutation.isError && <p className="status-message is-error">{mutation.error.response?.data?.message || "No se ha podido crear el cliente"}</p>}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 9 }}><button type="button" className="button-secondary" onClick={() => navigate("/customers")}>Cancelar</button><button className="button-primary" disabled={mutation.isPending}>{mutation.isPending ? "Creando…" : "Crear cliente"}</button></div>
+        <div className="form-actions"><button type="button" className="button-secondary" onClick={() => navigate("/customers")}>Cancelar</button><button className="button-primary" disabled={mutation.isPending}>{mutation.isPending ? "Creando…" : "Crear cliente"}</button></div>
       </form>
     </main>
   );

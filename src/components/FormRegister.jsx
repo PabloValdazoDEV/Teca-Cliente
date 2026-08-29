@@ -31,15 +31,15 @@ const FormRegister = ({ onCreated }) => {
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-gray-900">Crear usuario</h2>
+      <h2 style={{ margin: "12px 0 0", fontSize: 19 }}>Crear usuario</h2>
       <form
-        className="mt-4 grid gap-4 md:grid-cols-2"
+        className="employee-create-form"
         onSubmit={handleSubmit(onSubmit)}
       >
-        <div className="flex flex-col gap-1 md:col-span-2">
+        <div className="field employee-form-wide">
           <label htmlFor="register-email">Email</label>
           <input
-            className="rounded border border-gray-300 bg-white p-2"
+            className="control"
             id="register-email"
             type="email"
             autoComplete="username"
@@ -47,20 +47,20 @@ const FormRegister = ({ onCreated }) => {
           />
           {errors.email && <p style={{ color: "red" }}>Campo requerido</p>}
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="field">
           <label htmlFor="register-name">Nombre</label>
-          <input className="rounded border border-gray-300 bg-white p-2" id="register-name" type="text" {...register("name", { required: true, maxLength: 100 })} />
+          <input className="control" id="register-name" type="text" {...register("name", { required: true, maxLength: 100 })} />
           {errors.name && <p style={{ color: "red" }}>Nombre no válido</p>}
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="field">
           <label htmlFor="register-lastName">Apellidos</label>
-          <input className="rounded border border-gray-300 bg-white p-2" id="register-lastName" type="text" {...register("lastName", { required: true, maxLength: 100 })} />
+          <input className="control" id="register-lastName" type="text" {...register("lastName", { required: true, maxLength: 100 })} />
           {errors.lastName && <p style={{ color: "red" }}>Apellidos no válidos</p>}
         </div>
-        <div className="flex flex-col gap-1 md:col-span-2">
+        <div className="field employee-form-wide">
           <label htmlFor="register-password">Contraseña</label>
           <input
-            className="rounded border border-gray-300 bg-white p-2"
+            className="control"
             id="register-password"
             type="password"
             autoComplete="new-password"
@@ -79,15 +79,15 @@ const FormRegister = ({ onCreated }) => {
             <p style={{ color: "red" }}>{errors.password.message}</p>
           )}
         </div>
-        <div className="flex flex-col gap-1">
+        <div className="field">
           <label htmlFor="register-role">Rol</label>
-          <select className="rounded border border-gray-300 bg-white p-2" id="register-role" defaultValue="EMPLOYEE" {...register("role")}>
+          <select className="control" id="register-role" defaultValue="EMPLOYEE" {...register("role")}>
             <option value="EMPLOYEE">Empleado</option>
             {user?.role === "SUPERADMIN" && <option value="ADMIN">Administrador</option>}
           </select>
         </div>
-        {status && <p className="md:col-span-2" role="status">{status}</p>}
-        <button className="rounded bg-emerald-600 px-4 py-2 font-medium text-white md:col-span-2">Crear usuario</button>
+        {status && <p className="status-message employee-form-wide" role="status">{status}</p>}
+        <button className="button-primary employee-form-wide">Crear usuario</button>
       </form>
     </>
   );

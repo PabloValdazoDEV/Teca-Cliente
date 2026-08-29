@@ -165,6 +165,11 @@ const getClinic = async () => {
   return response.data;
 };
 
+const getAppConfig = async () => {
+  const response = await api.get("/app-config");
+  return response.data;
+};
+
 const updateClinic = async (data) => {
   const response = await api.put("/clinic", data);
   return response.data;
@@ -194,6 +199,11 @@ const getAllCustomers = async (params = {}) => {
     throw error;
   }
 }
+
+const searchCustomers = async (query) => {
+  const response = await api.get("/customers/search", { params: { q: query } });
+  return response.data;
+};
 
 const getCustomerEdit = async (customerId) => {
   try {
@@ -300,7 +310,8 @@ const downloadFullExport = async () => {
   link.href = url;
   link.download = `TECA-export-${new Date().toISOString().slice(0, 10)}.zip`;
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  return { exportedAt: response.headers["x-teca-exported-at"] || new Date().toISOString() };
 };
 
 const getAllFcihas = async (id) => {
@@ -388,10 +399,12 @@ export {
   updatePractitioner,
   invitePractitioner,
   getClinic,
+  getAppConfig,
   updateClinic,
   getSystemStatus,
   postCustomerCreate,
   getAllCustomers,
+  searchCustomers,
   getCustomerEdit,
   putCustomerEdit,
   getCustomerDate,

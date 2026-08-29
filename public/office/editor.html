@@ -76,7 +76,13 @@
         if (event.data.cmd === 'thr_running') parent.postMessage({ source: 'teca-office', cmd: 'runtime_ready' }, trustedOrigin);
         else if (event.data.cmd === 'ui_ready') {
           window.dispatchEvent(new Event('resize'));
-          setTimeout(() => { loading.style.display = 'none'; canvas.style.visibility = 'visible'; saveButton.disabled = false; stateLabel.textContent = 'Listo'; }, 700);
+          setTimeout(() => {
+            loading.style.display = 'none';
+            canvas.style.visibility = 'visible';
+            saveButton.disabled = false;
+            stateLabel.textContent = 'Listo';
+            parent.postMessage({ source: 'teca-office', cmd: 'document_ready' }, trustedOrigin);
+          }, 700);
         } else if (event.data.cmd === 'download') {
           const bytes = FS.readFile(`/tmp/office/${filename}`);
           const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);

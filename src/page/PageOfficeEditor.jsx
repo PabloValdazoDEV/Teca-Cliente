@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { FiArrowLeft, FiInfo, FiShield } from "react-icons/fi";
 import { getDocumentBlob, getDocumentMetadata, uploadDocumentVersion } from "@/API";
 
 const PageOfficeEditor = () => {
   const { docId } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const frameRef = useRef(null);
@@ -42,6 +43,8 @@ const PageOfficeEditor = () => {
         } catch (error) {
           setState({ label: error.response?.data?.message || "No se ha podido guardar la nueva versión", error: true });
         }
+      } else if (event.data.cmd === "document_ready") {
+        setState({ label: "Documento listo para editar", error: false });
       } else if (event.data.cmd === "error") {
         setState({ label: event.data.message || "No se ha podido iniciar el editor", error: true });
       }
@@ -54,17 +57,17 @@ const PageOfficeEditor = () => {
   if (isError || !document) return <main className="page"><div className="card empty-state">No se ha encontrado el documento.</div></main>;
 
   return (
-    <main style={{ height: "100vh", display: "flex", flexDirection: "column", minHeight: 0 }}>
-      <header style={{ minHeight: 62, display: "flex", alignItems: "center", gap: 12, padding: "9px 18px", borderBottom: "1px solid var(--line)", background: "#fff" }}>
-        <button className="icon-button" onClick={() => navigate(`/customers/${document.customerId}`)} title="Volver al paciente"><FiArrowLeft /></button>
+    <main className="office-editor">
+      <header className="office-editor-header">
+        <button className="icon-button" onClick={() => navigate(`/customers/${document.customerId}`, { state: { appointmentReturn: location.state?.appointmentReturn } })} title="Volver al paciente"><FiArrowLeft /></button>
         <div style={{ minWidth: 0, flex: 1 }}><strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{document.originalName || document.fileName}</strong><span className="helper">{document.customer.fullName} · versión {document.versions?.[0]?.version || 1}</span></div>
-        <span className={`status-message ${state.error ? "is-error" : ""}`} style={{ padding: "7px 10px" }}>{state.error ? <FiInfo /> : <FiShield />} {state.label}</span>
+        <span className={`status-message office-editor-status ${state.error ? "is-error" : ""}`}>{state.error ? <FiInfo /> : <FiShield />} {state.label}</span>
       </header>
       <iframe
         ref={frameRef}
         title={`Editor de ${document.originalName || document.fileName}`}
         src={frameUrl}
-        style={{ flex: 1, width: "100%", minHeight: 0, border: 0, background: "#f6f8f7" }}
+        className="office-editor-frame"
       />
     </main>
   );

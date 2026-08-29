@@ -70,12 +70,12 @@ const PageViewDoc = () => {
   }
   if (data) {
     return (
-      <div className="flex justify-center items-center flex-col w-6xl mx-auto gap-5 bg-gray-100 mt-10 p-5 rounded-lg shadow-lg">
-        <div className="flex flex-row gap-5 justify-between w-full">
+      <div className="legacy-records-page">
+        <div className="legacy-records-header">
           <h3 className="text-xl font-normal mb-5">
             Fichas asociados al <b>{data.customer.fullName}</b>
           </h3>
-          <div className="flex flex-row gap-5">
+          <div className="legacy-records-header-actions">
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -130,7 +130,8 @@ const PageViewDoc = () => {
                 </p>
               </div>
 
-              <table className="w-full bg-white h-40">
+              <div className="legacy-assessment-scroll" role="region" aria-label="Valoración corporal" tabIndex="0">
+              <table className="legacy-assessment-table w-full bg-white h-40">
                 <thead>
                   <tr className="bg-gray-300 text-left">
                     <th
@@ -392,7 +393,8 @@ const PageViewDoc = () => {
                   </tr>
                 </tbody>
               </table>
-              <div className="flex flex-row w-full gap-5 justify-center">
+              </div>
+              <div className="legacy-record-actions">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -416,7 +418,7 @@ const PageViewDoc = () => {
                   Borrar registro
                 </button>
               </div>
-              <hr className="w-2xl my-5 border-gray-400 border-1" />
+              <hr className="legacy-record-divider" />
             </div>
           );
         })}
@@ -437,7 +439,7 @@ const PageViewDoc = () => {
         )}
         {showModalDelete && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg w-96 shadow-lg">
+            <div className="legacy-confirm-dialog bg-white p-6 rounded-lg w-96 shadow-lg">
               <h3 className="text-2xl font-bold mb-4">Eliminar ficha</h3>
               <p className="text-gray-800 mb-4">
                 Estás a punto de eliminar todos los datos asociados esta ficha.

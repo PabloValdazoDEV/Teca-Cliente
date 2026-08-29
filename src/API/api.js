@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
-const refreshUrl = new URL("/refresh", API_URL).toString();
+const refreshUrl = `${API_URL.replace(/\/+$/, "")}/refresh`;
 const noRefreshPaths = ["/login", "/logout", "/refresh", "/forgot-password", "/reset-password"];
 let refreshRequest = null;
 
