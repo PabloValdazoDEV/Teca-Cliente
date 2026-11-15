@@ -16,7 +16,17 @@ const isolationHeaders = {
 export default defineConfig({
   plugins: [react(),  tailwindcss()],
   base: "/",
-  server: { headers: isolationHeaders },
+  server: {
+    headers: isolationHeaders,
+    // Solo en desarrollo: con VITE_API_URL=/api la web y la API comparten origen,
+    // lo que permite probar desde el móvil en la misma Wi-Fi (npm run dev:lan).
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3000',
+        rewrite: (requestPath) => requestPath.replace(/^\/api/, ''),
+      },
+    },
+  },
   preview: { headers: isolationHeaders },
   resolve:{
 

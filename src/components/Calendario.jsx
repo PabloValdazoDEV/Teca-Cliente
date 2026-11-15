@@ -15,14 +15,13 @@ import {
   minutesToTime,
   timeToMinutes,
 } from "@/utils/appointmentSchedule";
+import { phoneText } from "@/utils/contact";
 
 const DEFAULT_APPOINTMENT_COLOR = "#087655";
 const URGENT_APPOINTMENT_COLOR = "#d97706";
 const ADVANCE_APPOINTMENT_COLOR = "#2563eb";
 
-const formatPhone = (phone) =>
-  phone.rawValue ||
-  [phone.label, phone.countryCode, phone.phoneNumber].filter(Boolean).join(" ");
+const formatPhone = phoneText;
 
 const overlaps = (start, end, otherStart, otherEnd) =>
   start < otherEnd && end > otherStart;
@@ -43,11 +42,15 @@ const CalendarioVista = ({
   const [isMobile, setIsMobile] = useState(() =>
     window.matchMedia("(max-width: 700px)").matches,
   );
-  const { data: appointments = [], isFetching } = useQuery({
-    queryKey: ["appointments", practitioner?.id],
+  const { data: appointments = [], isFetching, isError, refetch } = useQuery({
+    // Solo las semanas visibles; al cambiar de semana se mantiene la anterior en
+    // pantalla mientras carga la nueva.
+    queryKey: ["appointments", practitioner?.id, visibleRange?.start?.getTime(), visibleRange?.end?.getTime()],
     queryFn: async () =>
-      practitioner?.id ? (await getFormDateUser(practitioner.id)) || [] : [],
-    enabled: Boolean(practitioner?.id),
+      practitioner?.id ? (await getFormDateUser(practitioner.id, visibleRange)) || [] : [],
+    enabled: Boolean(practitioner?.id && visibleRange),
+    placeholderData: (previous, previousQuery) =>
+      previousQuery?.queryKey?.[1] === practitioner?.id ? previous : undefined,
     retry: (count, error) => error?.response?.status !== 404 && count < 2,
   });
 
@@ -242,6 +245,12 @@ const CalendarioVista = ({
       className={`card calendar-card ${selectingAvailability ? "is-selecting-availability" : ""}`}
       aria-busy={isFetching}
     >
+      {isError && (
+        <div className="status-message is-error" role="alert" style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+          <span style={{ flex: 1 }}>No se ha podido cargar la agenda. Las citas que ves pueden no estar completas: no des huecos hasta que cargue.</span>
+          <button type="button" className="button-secondary" onClick={() => refetch()} disabled={isFetching}>{isFetching ? "Cargando…" : "Reintentar"}</button>
+        </div>
+      )}
       {selectingAvailability && (
         <div className="availability-banner" role="status">
           <FiCalendar aria-hidden="true" />

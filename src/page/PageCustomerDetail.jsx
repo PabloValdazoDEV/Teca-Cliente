@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router";
 import {
+  FiArchive,
   FiArrowLeft,
   FiCalendar,
   FiDownload,
@@ -9,12 +10,18 @@ import {
   FiFile,
   FiFileText,
   FiPlus,
+  FiRotateCcw,
   FiUploadCloud,
 } from "react-icons/fi";
+import { useAuth } from "@/context/AuthContext";
+import { phoneText, telHref } from "@/utils/contact";
 import {
+  archiveCustomer,
   createCustomerTemplates,
   downloadDocument,
+  getCustomerAccessLog,
   getCustomerDetail,
+  restoreCustomer,
   uploadCustomerDocument,
 } from "@/API";
 
@@ -30,9 +37,16 @@ const officeExtensions = new Set([
   "csv",
 ]);
 const extension = (name = "") => name.split(".").pop()?.toLowerCase();
-const phoneText = (phone) =>
-  phone.rawValue ||
-  [phone.label, phone.countryCode, phone.phoneNumber].filter(Boolean).join(" ");
+
+const ACCESS_ACTION_LABELS = {
+  VIEW_PATIENT: "Abrió la ficha",
+  VIEW_DOCUMENT: "Abrió un documento",
+  DOWNLOAD_DOCUMENT: "Descargó un documento",
+  EDIT_DOCUMENT: "Guardó una versión de un documento",
+  UPLOAD_DOCUMENT: "Subió un documento",
+  ARCHIVE_PATIENT: "Archivó al paciente",
+  RESTORE_PATIENT: "Restauró al paciente",
+};
 
 const PageCustomerDetail = () => {
   const { id } = useParams();
@@ -42,10 +56,18 @@ const PageCustomerDetail = () => {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState("summary");
   const [status, setStatus] = useState("");
+  const [archiveStatus, setArchiveStatus] = useState({ text: "", error: false });
+  const { user } = useAuth();
+  const isAdmin = ["ADMIN", "SUPERADMIN"].includes(user?.role);
   const appointmentReturn = location.state?.appointmentReturn;
   const { data, isLoading, isError } = useQuery({
     queryKey: ["customer", id],
     queryFn: () => getCustomerDetail(id),
+  });
+  const accessLog = useQuery({
+    queryKey: ["customer-access-log", id],
+    queryFn: () => getCustomerAccessLog(id),
+    enabled: isAdmin && tab === "access",
   });
 
   const uploadMutation = useMutation({
@@ -71,6 +93,55 @@ const PageCustomerDetail = () => {
           "No se han podido crear las plantillas",
       ),
   });
+
+  const refreshAfterArchive = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["customer", id] }),
+      queryClient.invalidateQueries({ queryKey: ["customers"] }),
+      queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+    ]);
+  const archiveMutation = useMutation({
+    mutationFn: ({ cancelFutureAppointments = false } = {}) =>
+      archiveCustomer(id, { cancelFutureAppointments }),
+    onSuccess: async (response) => {
+      setArchiveStatus({
+        text: response.cancelledAppointments
+          ? `Paciente archivado. Se han cancelado ${response.cancelledAppointments} citas futuras.`
+          : "Paciente archivado.",
+        error: false,
+      });
+      await refreshAfterArchive();
+    },
+    onError: (error) => {
+      const body = error.response?.data;
+      if (body?.code === "HAS_FUTURE_APPOINTMENTS") {
+        const confirmed = window.confirm(
+          `Este paciente tiene ${body.futureAppointments} cita(s) futura(s).\n\nSi lo archivas, esas citas se cancelarán y desaparecerán de la agenda. No se avisa al paciente.\n\n¿Archivar y cancelar las citas?`,
+        );
+        if (confirmed) archiveMutation.mutate({ cancelFutureAppointments: true });
+        return;
+      }
+      setArchiveStatus({ text: body?.message || "No se ha podido archivar el paciente", error: true });
+    },
+  });
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreCustomer(id),
+    onSuccess: async () => {
+      setArchiveStatus({ text: "Paciente restaurado. Vuelve a aparecer en los listados.", error: false });
+      await refreshAfterArchive();
+    },
+    onError: (error) =>
+      setArchiveStatus({ text: error.response?.data?.message || "No se ha podido restaurar el paciente", error: true }),
+  });
+  const confirmArchive = () => {
+    if (
+      window.confirm(
+        "¿Archivar este paciente?\n\nDejará de aparecer en el listado de clientes y en el buscador de citas. Su historia clínica, documentos y citas pasadas se conservan, y puedes restaurarlo cuando quieras desde Clientes › Archivados.",
+      )
+    ) {
+      archiveMutation.mutate({});
+    }
+  };
 
   if (isLoading)
     return (
@@ -140,8 +211,17 @@ const PageCustomerDetail = () => {
               {customer.fullName || "Sin nombre"}
             </h1>
             <p className="page-subtitle">
-              {customer.phones.map(phoneText).filter(Boolean).join(" · ") ||
-                "Sin teléfono"}
+              {customer.phones.length
+                ? customer.phones.map((phone, index) => {
+                    const tel = telHref(phone);
+                    return (
+                      <span key={phone.id || index}>
+                        {index > 0 && " · "}
+                        {tel ? <a href={tel} className="phone-link">{phoneText(phone)}</a> : phoneText(phone)}
+                      </span>
+                    );
+                  })
+                : "Sin teléfono"}
               {customer.emailAddress ? ` · ${customer.emailAddress}` : ""}
             </p>
           </div>
@@ -155,18 +235,57 @@ const PageCustomerDetail = () => {
           >
             <FiEdit3 /> Editar datos
           </button>
-          <button
-            className="button-primary"
-            onClick={() =>
-              navigate("/home", {
-                state: { createAppointment: true, customerId: id },
-              })
-            }
-          >
-            <FiPlus /> Crear cita
-          </button>
+          {!customer.archivedAt && (
+            <button
+              className="button-primary"
+              onClick={() =>
+                navigate("/home", {
+                  state: { createAppointment: true, customerId: id },
+                })
+              }
+            >
+              <FiPlus /> Crear cita
+            </button>
+          )}
+          {isAdmin && !customer.archivedAt && (
+            <button
+              type="button"
+              className="button-ghost archive-button"
+              disabled={archiveMutation.isPending}
+              onClick={confirmArchive}
+            >
+              <FiArchive /> {archiveMutation.isPending ? "Archivando…" : "Archivar"}
+            </button>
+          )}
         </div>
       </section>
+      {customer.archivedAt && (
+        <div className="appointment-past-warning" role="status" style={{ marginBottom: 18, alignItems: "center" }}>
+          <FiArchive aria-hidden="true" />
+          <span style={{ flex: 1 }}>
+            <strong>
+              Paciente archivado el{" "}
+              {new Date(customer.archivedAt).toLocaleDateString("es-ES", { day: "numeric", month: "long", year: "numeric" })}
+            </strong>
+            No aparece en los listados ni puede recibir citas nuevas. Su historia clínica se conserva.
+          </span>
+          {isAdmin && (
+            <button
+              type="button"
+              className="button-secondary"
+              disabled={restoreMutation.isPending}
+              onClick={() => restoreMutation.mutate()}
+            >
+              <FiRotateCcw /> {restoreMutation.isPending ? "Restaurando…" : "Restaurar"}
+            </button>
+          )}
+        </div>
+      )}
+      {archiveStatus.text && (
+        <p className={`status-message ${archiveStatus.error ? "is-error" : ""}`} role="status" style={{ marginBottom: 18 }}>
+          {archiveStatus.text}
+        </p>
+      )}
 
       <nav
         className="customer-tabs"
@@ -183,6 +302,7 @@ const PageCustomerDetail = () => {
           { id: "appointments", label: "Citas" },
           { id: "documents", label: `Documentación (${customer.docs.length})` },
           { id: "data", label: "Datos personales" },
+          ...(isAdmin ? [{ id: "access", label: "Accesos" }] : []),
         ].map((item) => (
           <button
             key={item.id}
@@ -218,7 +338,6 @@ const PageCustomerDetail = () => {
               <FiCalendar color="var(--primary)" />
               <h2 style={{ margin: 0, fontSize: 18 }}>Próxima cita</h2>
             </div>
-            {console.log(nextAppointment)}
             {nextAppointment ? (
               <div style={{ marginTop: 20 }}>
                 <strong>
@@ -474,6 +593,33 @@ const PageCustomerDetail = () => {
               <strong>{value}</strong>
             </div>
           ))}
+        </section>
+      )}
+
+      {tab === "access" && isAdmin && (
+        <section className="card card-pad">
+          <h2 style={{ margin: "0 0 4px", fontSize: 18 }}>Registro de accesos</h2>
+          <p className="helper" style={{ marginTop: 0 }}>Quién ha consultado o modificado los datos clínicos de este paciente (últimos 100 movimientos).</p>
+          {accessLog.isLoading ? (
+            <div className="empty-state">Cargando registro…</div>
+          ) : accessLog.isError ? (
+            <div className="empty-state">No se ha podido cargar el registro de accesos.</div>
+          ) : !accessLog.data?.entries?.length ? (
+            <div className="empty-state">Todavía no hay accesos registrados.</div>
+          ) : (
+            <table className="data-table mobile-card-table">
+              <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th></tr></thead>
+              <tbody>
+                {accessLog.data.entries.map((entry) => (
+                  <tr key={entry.id}>
+                    <td data-label="Fecha">{new Date(entry.createdAt).toLocaleString("es-ES", { dateStyle: "short", timeStyle: "short" })}</td>
+                    <td data-label="Usuario">{entry.userName}</td>
+                    <td data-label="Acción">{ACCESS_ACTION_LABELS[entry.action] || entry.action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       )}
     </main>

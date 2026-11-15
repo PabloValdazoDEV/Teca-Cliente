@@ -5,6 +5,7 @@ import { useNavigate } from "react-router";
 import { FiAlertTriangle, FiCalendar, FiCheck, FiClock, FiCopy, FiEdit3, FiFileText, FiMail, FiMessageCircle, FiPhone, FiPlus, FiSearch, FiTrash2, FiUser } from "react-icons/fi";
 import { deleteDate, getAppConfig, getCustomerEdit, postDataCreate, putDataEdit, searchCustomers } from "@/API";
 import { appointmentFitsExtendedHours, appointmentFitsUsualHours } from "@/utils/appointmentSchedule";
+import { phoneText } from "@/utils/contact";
 
 const toInputValue = (date) => {
   if (!date) return "";
@@ -15,8 +16,6 @@ const toInputValue = (date) => {
 
 const toApiDate = (value) => value ? `${value.replace("T", " ")}:00`.slice(0, 19) : "";
 
-const phoneText = (phone) =>
-  phone?.rawValue || [phone?.label, phone?.countryCode, phone?.phoneNumber].filter(Boolean).join(" ");
 
 const communicationPhone = (customer) =>
   customer?.phones?.find((item) => item.isCommunicationPhone) || customer?.phones?.[0];
@@ -418,8 +417,9 @@ const AppointmentPanel = ({ allowOutsideHours = false, businessHours = [], defau
           ? queryClient.invalidateQueries({ queryKey: ["customer", customerId] })
           : Promise.resolve(),
       ]);
-      setStatus(selected?.id ? "Cita actualizada" : "Cita creada correctamente");
-      onCreated?.();
+      const message = selected?.id ? "Cita actualizada" : "Cita creada correctamente";
+      setStatus(message);
+      onCreated?.(message);
     },
     onError: (error) => setStatus(error.response?.data?.message || "No se ha podido guardar la cita"),
   });
@@ -435,6 +435,7 @@ const AppointmentPanel = ({ allowOutsideHours = false, businessHours = [], defau
       ]);
       onClose();
     },
+    onError: (error) => setStatus(error.response?.data?.message || "No se ha podido eliminar la cita. Sigue en la agenda."),
   });
 
   const change = (event) => {
@@ -600,7 +601,7 @@ const AppointmentPanel = ({ allowOutsideHours = false, businessHours = [], defau
             </div>
           )}
           <div className="appointment-form-grid">
-            <label className="field"><span>Duración</span><select name="time" value={form.time} onChange={change}>{[5,15,30,45,60,75,90,120].map((value) => <option key={value} value={value}>{value} min</option>)}</select></label>
+            <label className="field"><span>Duración</span><select name="time" value={form.time} onChange={change}>{[15,30,45,60,75,90,120].map((value) => <option key={value} value={value}>{value} min</option>)}</select></label>
             <label className="field"><span>Precio (€)</span><input name="sessionPrice" type="number" min="0" value={form.sessionPrice} onChange={change} />{Number(defaultHourlyRate) > 0 && !priceManuallyEdited && <small className="helper">{defaultHourlyRate} €/h · cálculo automático</small>}</label>
           </div>
           <label className="field"><span>Observaciones</span><textarea name="dateObservation" value={form.dateObservation} onChange={change} placeholder="Motivo o notas para la sesión" /></label>

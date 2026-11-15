@@ -31,10 +31,25 @@ const Navbar = () => {
   const managementLinks = isAdmin
     ? [
         { label: "Clínica y agendas", path: "/clinic", icon: FiClock },
-        { label: "Empleados", path: "/employees", icon: FiSettings },
+        { label: "Equipo", path: "/team", icon: FiSettings },
         { label: "Estado del sistema", path: "/system", icon: FiActivity },
       ]
     : [];
+
+  // Precarga el editor de documentos en segundo plano (una vez por equipo) para que
+  // abrir una ficha no tenga que esperar a descargar LibreOffice.
+  useEffect(() => {
+    const run = () => {
+      const moduleUrl = new URL("/office/runtime-cache.js", window.location.origin).href;
+      import(/* @vite-ignore */ moduleUrl)
+        .then((officeCache) => officeCache.warmRuntimeInBackground())
+        .catch(() => {});
+    };
+    const idle = window.requestIdleCallback
+      ? window.requestIdleCallback(run, { timeout: 15000 })
+      : window.setTimeout(run, 5000);
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(idle) : window.clearTimeout(idle));
+  }, []);
 
   const initials = `${user?.name?.[0] || "T"}${user?.lastName?.[0] || ""}`;
   const showExpandedNavigation = !compact || mobileOpen;
@@ -44,8 +59,8 @@ const Navbar = () => {
       ? "Perfil"
       : location.pathname.startsWith("/clinic")
         ? "Clínica y agendas"
-        : location.pathname.startsWith("/employees")
-          ? "Empleados"
+        : location.pathname.startsWith("/team")
+          ? "Equipo"
           : location.pathname.startsWith("/system")
             ? "Estado del sistema"
             : "Agenda";

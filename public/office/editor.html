@@ -6,14 +6,44 @@
   <title>Editor WebAssembly de TECA</title>
   <style>
     *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,system-ui,sans-serif;background:#eef3f0;color:#14221d}
-    body{display:flex;flex-direction:column;overflow:hidden}.bar{height:52px;display:flex;align-items:center;gap:12px;padding:0 14px;background:#fff;border-bottom:1px solid #dfe7e3}.bar strong{flex:1}.bar button{height:36px;padding:0 14px;border:0;border-radius:8px;color:#fff;background:#006c49;font-weight:700;cursor:pointer}.bar button:disabled{opacity:.55;cursor:wait}
-    .canvas-wrap{position:relative;flex:1;min-height:0}#qtcanvas{width:100%;height:100%;border:0;padding:0;outline:0;visibility:hidden}.loading{position:absolute;inset:0;display:grid;place-items:center;background:#f6f8f7;z-index:2;text-align:center}.spinner{width:42px;height:42px;margin:0 auto 12px;border:4px solid #cfe0d8;border-top-color:#006c49;border-radius:50%;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.error{color:#a8251b;max-width:560px;padding:24px}
+    body{display:flex;flex-direction:column;overflow:hidden}
+    .bar{height:52px;display:flex;align-items:center;gap:8px;padding:0 14px;background:#fff;border-bottom:1px solid #dfe7e3}
+    .bar strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bar button{height:36px;padding:0 14px;border:0;border-radius:8px;color:#fff;background:#006c49;font-weight:700;cursor:pointer;font:inherit;font-weight:700}
+    .bar button.ghost{background:#fff;color:#14221d;border:1px solid #cfdcd5;padding:0 10px;font-weight:600}
+    .bar button:disabled{opacity:.55;cursor:not-allowed}
+    .bar button:focus-visible{outline:3px solid #7fc4a6;outline-offset:2px}
+    #stateLabel{font-size:13px;color:#4a5b54;white-space:nowrap}
+    #stateLabel.dirty{color:#9a5b00;font-weight:600}
+    .canvas-wrap{position:relative;flex:1;min-height:0}
+    #qtcanvas{width:100%;height:100%;border:0;padding:0;outline:0;visibility:hidden}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;background:#f6f8f7;z-index:2;text-align:center;padding:24px}
+    .progress{width:min(380px,80vw);height:10px;margin:12px auto 8px;border-radius:99px;background:#dbe7e1;overflow:hidden}
+    .progress span{display:block;height:100%;width:0;background:#006c49;transition:width .25s ease-out}
+    #loadingPercent{display:block;font-size:44px;font-weight:800;line-height:1;color:#006c49;font-variant-numeric:tabular-nums;margin-bottom:10px}
+    #loadingTitle{font-size:16px}
+    #loadingDetail{font-size:13px;color:#4a5b54;margin:4px 0 0}
+    .error{color:#a8251b;max-width:560px;padding:24px}
+    @media (max-width:600px){.bar{gap:6px;padding:0 8px}.bar .ghost span{display:none}#stateLabel{display:none}}
   </style>
 </head>
 <body>
-  <header class="bar"><strong id="fileLabel">Preparando LibreOffice…</strong><span id="stateLabel"></span><button id="saveButton" disabled>Guardar nueva versión</button></header>
+  <header class="bar">
+    <strong id="fileLabel">Preparando LibreOffice…</strong>
+    <span id="stateLabel" role="status" aria-live="polite"></span>
+    <button id="undoButton" class="ghost" disabled title="Deshacer (Ctrl+Z)" aria-label="Deshacer">↶ <span>Deshacer</span></button>
+    <button id="redoButton" class="ghost" disabled title="Rehacer (Ctrl+Y)" aria-label="Rehacer">↷ <span>Rehacer</span></button>
+    <button id="saveButton" disabled title="Guardar en TECA (Ctrl+S)">Guardar nueva versión</button>
+  </header>
   <div class="canvas-wrap" onselectstart="event.preventDefault()">
-    <div id="loading" class="loading"><div><div class="spinner"></div><strong>Cargando LibreOffice en tu navegador</strong><p>La primera vez puede tardar un poco.</p></div></div>
+    <div id="loading" class="loading">
+      <div>
+        <span id="loadingPercent" aria-hidden="true">0 %</span>
+        <strong id="loadingTitle">Preparando el editor</strong>
+        <div id="progress" class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Carga del editor"><span id="progressBar"></span></div>
+        <p id="loadingDetail">Comprobando si el editor ya está guardado en este equipo…</p>
+      </div>
+    </div>
     <canvas id="qtcanvas" contenteditable="true" oncontextmenu="event.preventDefault()" onkeydown="event.preventDefault()"></canvas>
   </div>
   <script>
@@ -23,20 +53,104 @@
     const runtimeBase = new URL(runtime, location.href).toString();
     const canvas = document.getElementById('qtcanvas');
     const loading = document.getElementById('loading');
+    const loadingTitle = document.getElementById('loadingTitle');
+    const loadingDetail = document.getElementById('loadingDetail');
+    const progress = document.getElementById('progress');
+    const progressBar = document.getElementById('progressBar');
     const saveButton = document.getElementById('saveButton');
+    const undoButton = document.getElementById('undoButton');
+    const redoButton = document.getElementById('redoButton');
     const fileLabel = document.getElementById('fileLabel');
     const stateLabel = document.getElementById('stateLabel');
     let filename = '';
     let threadPort;
+    let documentReady = false;
+    let saving = false;
+    const loadingPercent = document.getElementById('loadingPercent');
+
+    // Porcentaje único de carga, de principio a fin. Las fases con datos reales
+    // (descarga, carga del runtime) fijan el avance; las que no los tienen
+    // (arranque, apertura) avanzan despacio hacia su tope sin pasarlo nunca, así
+    // la barra no se queda quieta ni llega al 100 % antes de tiempo.
+    const loadProgress = (() => {
+      let shown = 0;
+      let floor = 0;
+      let cap = 4;
+      let reported = -1;
+      let stopped = false;
+      const render = () => {
+        if (stopped) return;
+        shown = Math.min(100, Math.max(shown, floor));
+        const value = Math.floor(shown);
+        progressBar.style.width = `${shown}%`;
+        loadingPercent.textContent = `${value} %`;
+        progress.setAttribute('aria-valuenow', String(value));
+        if (value !== reported) {
+          reported = value;
+          toParent({ cmd: 'progress', percent: value });
+        }
+      };
+      const timer = setInterval(() => {
+        if (shown < cap - 0.3) {
+          shown += Math.max(0.12, (cap - shown) * 0.025);
+          render();
+        }
+      }, 200);
+      return {
+        // Fase sin datos reales: avanza sola hasta `to`.
+        phase(from, to, title, detail) {
+          floor = Math.max(floor, from);
+          cap = Math.max(cap, to);
+          if (title) loadingTitle.textContent = title;
+          if (detail !== undefined) loadingDetail.textContent = detail;
+          render();
+        },
+        // Avance real conocido (p. ej. bytes descargados).
+        exact(value, detail) {
+          floor = Math.max(floor, Math.min(99, value));
+          cap = Math.max(cap, floor);
+          if (detail !== undefined) loadingDetail.textContent = detail;
+          render();
+        },
+        done() {
+          floor = 100;
+          cap = 100;
+          render();
+          clearInterval(timer);
+        },
+        stop() {
+          stopped = true;
+          clearInterval(timer);
+        },
+      };
+    })();
+    let runtimeDownloaded = false;
 
     var Module = {
       canvas,
       uno_scripts: ['/office/vendor/zeta.js', '/office/office_thread.js'],
       locateFile: (file, prefix) => (prefix || runtimeBase) + file,
     };
+    // El runtime informa del progreso al cargar sus datos: "Downloading data... (x/y)".
+    Module.setStatus = (text) => {
+      const match = /\((\d+)\/(\d+)\)/.exec(text || '');
+      if (match && Number(match[2]) > 0) {
+        const start = runtimeDownloaded ? 55 : 5;
+        loadProgress.exact(start + (80 - start) * (Number(match[1]) / Number(match[2])));
+      } else if (/running/i.test(text || '')) {
+        loadProgress.phase(80, 90, 'Iniciando LibreOffice', 'Esto tarda unos segundos.');
+      }
+    };
     Module.mainScriptUrlOrBlob = new Blob([`importScripts('${runtimeBase}soffice.js');`], { type: 'text/javascript' });
 
+    const toParent = (message, transfer) => parent.postMessage({ source: 'teca-office', ...message }, trustedOrigin, transfer);
+    const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
+
+    let startupWatchdog = null;
     function fail(message) {
+      clearTimeout(startupWatchdog);
+      loadProgress.stop();
+      if (!filename) fileLabel.textContent = 'Editor no disponible';
       const wrapper = document.createElement('div');
       wrapper.className = 'error';
       const heading = document.createElement('strong');
@@ -45,7 +159,21 @@
       detail.textContent = message;
       wrapper.append(heading, detail);
       loading.replaceChildren(wrapper);
-      parent.postMessage({ source: 'teca-office', cmd: 'error', message }, trustedOrigin);
+      loading.style.display = 'grid';
+      toParent({ cmd: 'error', message });
+    }
+
+    function setState(text, dirty = false) {
+      stateLabel.textContent = text;
+      stateLabel.classList.toggle('dirty', dirty);
+    }
+
+    function save() {
+      if (!documentReady || saving || !threadPort) return;
+      saving = true;
+      saveButton.disabled = true;
+      setState('Guardando…');
+      threadPort.postMessage({ cmd: 'download' });
     }
 
     window.addEventListener('message', (event) => {
@@ -55,44 +183,135 @@
         fileLabel.textContent = filename;
         try { FS.mkdir('/tmp/office'); } catch {}
         FS.writeFile(`/tmp/office/${filename}`, new Uint8Array(event.data.buffer));
+        loadProgress.phase(92, 99, 'Abriendo el documento', filename);
         loading.style.display = 'grid';
         threadPort.postMessage({ cmd: 'upload', filename });
+      } else if (event.data.cmd === 'save') {
+        save();
+      } else if (event.data.cmd === 'saved') {
+        saving = false;
+        saveButton.disabled = false;
+        setState('Guardado en TECA');
+      } else if (event.data.cmd === 'save_failed') {
+        saving = false;
+        saveButton.disabled = false;
+        setState('Error al guardar', true);
       }
     });
 
-    saveButton.addEventListener('click', () => {
-      saveButton.disabled = true;
-      stateLabel.textContent = 'Guardando…';
-      threadPort.postMessage({ cmd: 'download' });
-    });
+    // Ctrl/Cmd+S guarda en TECA en vez de en el disco virtual del navegador.
+    window.addEventListener('keydown', (event) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        event.stopPropagation();
+        save();
+      }
+    }, true);
+
+    saveButton.addEventListener('click', save);
+    undoButton.addEventListener('click', () => { threadPort?.postMessage({ cmd: 'undo' }); canvas.focus(); });
+    redoButton.addEventListener('click', () => { threadPort?.postMessage({ cmd: 'redo' }); canvas.focus(); });
     canvas.addEventListener('wheel', (event) => event.preventDefault(), { passive: false });
 
-    const script = document.createElement('script');
-    script.src = `${runtimeBase}soffice.js`;
-    script.onerror = () => fail('El runtime WebAssembly no está instalado o no es accesible. Ejecuta npm run office:runtime y publica public/office/runtime.');
-    script.onload = () => Module.uno_main.then((port) => {
-      threadPort = port;
-      threadPort.onmessage = (event) => {
-        if (event.data.cmd === 'thr_running') parent.postMessage({ source: 'teca-office', cmd: 'runtime_ready' }, trustedOrigin);
-        else if (event.data.cmd === 'ui_ready') {
-          window.dispatchEvent(new Event('resize'));
-          setTimeout(() => {
-            loading.style.display = 'none';
-            canvas.style.visibility = 'visible';
-            saveButton.disabled = false;
-            stateLabel.textContent = 'Listo';
-            parent.postMessage({ source: 'teca-office', cmd: 'document_ready' }, trustedOrigin);
-          }, 700);
-        } else if (event.data.cmd === 'download') {
-          const bytes = FS.readFile(`/tmp/office/${filename}`);
-          const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-          saveButton.disabled = false;
-          stateLabel.textContent = 'Cambios preparados';
-          parent.postMessage({ source: 'teca-office', cmd: 'save', filename, buffer }, trustedOrigin, [buffer]);
+    function startOffice() {
+      loadProgress.phase(runtimeDownloaded ? 55 : 5, 78, 'Cargando LibreOffice', 'Preparando el editor en tu navegador…');
+      const script = document.createElement('script');
+      script.src = `${runtimeBase}soffice.js`;
+      script.onerror = () => fail('El runtime WebAssembly no está instalado o no es accesible. Ejecuta npm run office:runtime y publica public/office/runtime.');
+      // Si LibreOffice no llega a arrancar, se avisa en vez de dejar la barra parada.
+      startupWatchdog = setTimeout(() => {
+        fail('LibreOffice está tardando demasiado en arrancar. Recarga la página; si se repite, prueba con Chrome o Edge actualizados.');
+      }, 120000);
+      script.onload = () => {
+        if (!Module.uno_main) {
+          fail('El navegador no ha podido iniciar LibreOffice.');
+          return;
         }
+        Module.uno_main.then((port) => {
+        threadPort = port;
+        threadPort.onmessage = (event) => {
+          const { cmd } = event.data;
+          if (cmd === 'thr_running') {
+            clearTimeout(startupWatchdog);
+            loadProgress.phase(90, 92, 'Iniciando LibreOffice', 'Casi listo…');
+            toParent({ cmd: 'runtime_ready' });
+          }
+          else if (cmd === 'log') console.warn(`[teca-office] ${event.data.text}`);
+          else if (cmd === 'relayout') setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+          else if (cmd === 'ui_ready') {
+            window.dispatchEvent(new Event('resize'));
+            loadProgress.done();
+            loadingTitle.textContent = 'Documento listo';
+            setTimeout(() => {
+              loading.style.display = 'none';
+              canvas.style.visibility = 'visible';
+              documentReady = true;
+              saveButton.disabled = false;
+              undoButton.disabled = false;
+              redoButton.disabled = false;
+              setState('Sin cambios');
+              canvas.focus();
+              toParent({ cmd: 'document_ready' });
+            }, 700);
+          } else if (cmd === 'modified') {
+            if (event.data.modified) setState('Cambios sin guardar', true);
+            toParent({ cmd: 'modified', modified: event.data.modified });
+          } else if (cmd === 'download') {
+            const bytes = FS.readFile(`/tmp/office/${filename}`);
+            const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+            setState('Subiendo a TECA…');
+            toParent({ cmd: 'save', filename, buffer }, [buffer]);
+          }
+        };
+        }).catch((error) => fail(error.message || 'Error al iniciar LibreOffice WebAssembly.'));
       };
-    }).catch((error) => fail(error.message || 'Error al iniciar LibreOffice WebAssembly.'));
-    document.body.appendChild(script);
+      document.body.appendChild(script);
+    }
+
+    function waitForController(timeoutMs) {
+      if (navigator.serviceWorker.controller) return Promise.resolve(true);
+      return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(false), timeoutMs);
+        navigator.serviceWorker.addEventListener('controllerchange', () => { clearTimeout(timer); resolve(true); }, { once: true });
+      });
+    }
+
+    // Descarga el runtime una única vez por equipo y lo sirve desde caché. Si el
+    // navegador no lo permite, se carga directamente como antes.
+    async function prepareRuntime() {
+      const sameOriginRuntime = runtimeBase === new URL('/office/runtime/', location.href).toString();
+      if (!sameOriginRuntime) return;
+      const cacheModule = await import('/office/runtime-cache.js');
+      if (!cacheModule.isSupported()) return;
+      await cacheModule.registerServiceWorker();
+      if (!(await waitForController(10000))) return;
+      const result = await cacheModule.ensureRuntimeCached({
+        onProgress: ({ loaded, total }) => {
+          runtimeDownloaded = true;
+          loadingTitle.textContent = 'Descargando el editor (solo la primera vez)';
+          if (total) {
+            loadProgress.exact(4 + 51 * Math.min(1, loaded / total), `${mb(loaded)} de ${mb(total)}`);
+          } else {
+            loadProgress.exact(4, `${mb(loaded)} descargados`);
+          }
+        },
+      });
+      if (!result.downloaded) loadingDetail.textContent = 'Editor ya guardado en este equipo.';
+    }
+
+    // LibreOffice en el navegador necesita una conexión segura (https o localhost).
+    // Por http con una IP (p. ej. desde el móvil en la Wi-Fi) el navegador bloquea
+    // SharedArrayBuffer y el arranque se quedaría colgado.
+    if (!self.crossOriginIsolated || typeof SharedArrayBuffer === 'undefined') {
+      const local = `${location.protocol}//localhost${location.port ? `:${location.port}` : ''}${location.pathname.replace(/\/office\/editor\.html$/, '')}`;
+      fail(window.isSecureContext
+        ? 'El servidor no está enviando las cabeceras de seguridad que necesita el editor (Cross-Origin-Opener-Policy y Cross-Origin-Embedder-Policy). Revisa la configuración de nginx.'
+        : `El editor de documentos solo funciona con una conexión segura (https). Esta dirección (${location.host}) no lo es: en producción funciona con https, y en pruebas abre TECA desde el ordenador en ${local || 'http://localhost'}.`);
+    } else {
+      prepareRuntime()
+        .catch((error) => console.warn('[teca-office] Caché del runtime no disponible:', error))
+        .finally(startOffice);
+    }
   </script>
 </body>
 </html>

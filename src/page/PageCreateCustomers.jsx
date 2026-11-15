@@ -10,6 +10,18 @@ const initial = {
   profession: "", address: "", population: "", province: "", cD: "", weight: "", height: "",
 };
 
+// Un teléfono escrito pero sin pulsar "Añadir" también se guarda.
+const withPendingPhone = (list, pending) =>
+  pending.rawValue.trim()
+    ? [...list, { ...pending, rawValue: pending.rawValue.trim(), isCommunicationPhone: list.length === 0 }]
+    : list;
+const addOnEnter = (add) => (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    add();
+  }
+};
+
 const PageCreateCustomers = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState(initial);
@@ -37,7 +49,7 @@ const PageCreateCustomers = () => {
       weight: form.weight || null,
       height: form.height || null,
       province: form.province || null,
-      PhoneNumber: phones,
+      PhoneNumber: withPendingPhone(phones, phone),
     });
   };
 
@@ -56,12 +68,12 @@ const PageCreateCustomers = () => {
           <div><h2 style={{ margin: 0, fontSize: 18 }}>Contacto <span className="helper">(opcional)</span></h2><p className="helper">Acepta números antiguos, texto libre y varios teléfonos con el mismo nombre.</p></div>
           <div className="phone-entry-grid" style={{ display: "grid", gridTemplateColumns: "130px minmax(0,1fr) auto", gap: 9, alignItems: "end" }}>
             <label className="field"><span>Etiqueta</span><input value={phone.label} onChange={(event) => setPhone((value) => ({ ...value, label: event.target.value }))} placeholder="Móvil, casa…" /></label>
-            <label className="field"><span>Teléfono o anotación</span><input value={phone.rawValue} onChange={(event) => setPhone((value) => ({ ...value, rawValue: event.target.value }))} placeholder="600 123 456 / madre: 91…" /></label>
+            <label className="field"><span>Teléfono o anotación</span><input value={phone.rawValue} onChange={(event) => setPhone((value) => ({ ...value, rawValue: event.target.value }))} onKeyDown={addOnEnter(addPhone)} placeholder="600 123 456 / madre: 91…" /></label>
             <button type="button" className="button-secondary" onClick={addPhone}><FiPlus /> Añadir</button>
           </div>
           {phones.map((item, index) => (
             <div key={`${item.rawValue}-${index}`} className="phone-list-item">
-              <label className="phone-list-label"><input type="radio" checked={item.isCommunicationPhone} onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))} /> <span><strong>{item.label || "Teléfono"}</strong> {item.rawValue}</span></label>
+              <label className="phone-list-label"><input type="radio" name="communicationPhone" aria-label="Teléfono para comunicaciones" checked={item.isCommunicationPhone} onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))} /> <span><strong>{item.label || "Teléfono"}</strong> {item.rawValue}</span></label>
               <button type="button" className="icon-button" aria-label={`Eliminar ${item.label || "teléfono"}`} onClick={() => setPhones((values) => values.filter((_, position) => position !== index))}><FiTrash2 /></button>
             </div>
           ))}

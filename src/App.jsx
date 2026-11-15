@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { Route, Routes, Navigate } from "react-router";
+import { Route, Routes, Navigate, useLocation } from "react-router";
 // import HomeAuth from "@/components/HomeAuth";
 import PageLogin from "@/page/PageLogin";
 import { useAuth } from "@/context/AuthContext";
@@ -12,30 +12,42 @@ import PageViewDoc from "./page/PageViewDoc";
 import PageForgotPassword from "./page/PageForgotPassword";
 import PageResetPassword from "./page/PageResetPassword";
 import PageProfile from "./page/PageProfile";
-import PageEmployees from "./page/PageEmployees";
+import PageTeam from "./page/PageTeam";
+import PagePrintAgenda from "./page/PagePrintAgenda";
 import PageClinic from "./page/PageClinic";
 import PageCustomerDetail from "./page/PageCustomerDetail";
 import PageOfficeEditor from "./page/PageOfficeEditor";
 import PageSystemStatus from "./page/PageSystemStatus";
 
 const PrivateRoute = ({ element }) => {
-  const { loading, user } = useAuth();
+  const { loading, sessionExpired, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="p-6">Comprobando sesión…</div>;
   }
 
-  return user ? element : <Navigate to="/" replace />;
+  // Se recuerda dónde estaba para volver allí tras iniciar sesión.
+  return user ? element : (
+    <Navigate
+      to="/"
+      replace
+      state={{ from: `${location.pathname}${location.search}`, reason: sessionExpired ? "expired" : undefined }}
+    />
+  );
 };
 
 const PublicRoute = ({ element }) => {
   const { loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <div className="p-6">Comprobando sesión…</div>;
   }
 
-  return !user ? element : <Navigate to="/home" replace />;
+  const from = location.state?.from;
+  const safeFrom = typeof from === "string" && from.startsWith("/") && !from.startsWith("//") ? from : "/home";
+  return !user ? element : <Navigate to={safeFrom} replace />;
 };
 
 const RoleRoute = ({ allowedRoles, element }) => {
@@ -62,6 +74,10 @@ function App() {
           />
           <Route path="reset-password" element={<PageResetPassword />} />
           <Route
+            path="print"
+            element={<PrivateRoute element={<PagePrintAgenda />} />}
+          />
+          <Route
             path="office/:docId"
             element={<PrivateRoute element={<PageOfficeEditor />} />}
           />
@@ -80,13 +96,17 @@ function App() {
               element={<PrivateRoute element={<PageProfile />} />}
             />
             <Route
-              path="employees"
+              path="team"
               element={
                 <RoleRoute
                   allowedRoles={["SUPERADMIN", "ADMIN"]}
-                  element={<PageEmployees />}
+                  element={<PageTeam />}
                 />
               }
+            />
+            <Route
+              path="employees"
+              element={<Navigate to="/team" replace />}
             />
             <Route
               path="clinic"
@@ -144,7 +164,7 @@ function App() {
               element={
                 <RoleRoute
                   allowedRoles={["SUPERADMIN", "ADMIN"]}
-                  element={<Navigate to="/employees" replace />}
+                  element={<Navigate to="/team" replace />}
                 />
               }
             />

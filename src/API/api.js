@@ -5,6 +5,16 @@ const refreshUrl = `${API_URL.replace(/\/+$/, "")}/refresh`;
 const noRefreshPaths = ["/login", "/logout", "/refresh", "/forgot-password", "/reset-password"];
 let refreshRequest = null;
 
+// Una sola renovación a la vez, también entre pestañas: el servidor rota el token
+// de "recordarme", y dos renovaciones simultáneas con el mismo token cerrarían la
+// sesión en ambas.
+const runRefresh = () => {
+  const request = () => axios.post(refreshUrl, {}, { withCredentials: true });
+  return navigator.locks?.request
+    ? navigator.locks.request("teca-session-refresh", request)
+    : request();
+};
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -29,8 +39,7 @@ api.interceptors.response.use(
 
       try {
         if (!refreshRequest) {
-          refreshRequest = axios
-            .post(refreshUrl, {}, { withCredentials: true })
+          refreshRequest = runRefresh()
             .finally(() => {
               refreshRequest = null;
             });
@@ -38,8 +47,12 @@ api.interceptors.response.use(
 
         await refreshRequest;
         return api(originalRequest);
-      } catch {
-        window.dispatchEvent(new Event("teca:unauthorized"));
+      } catch (refreshError) {
+        // Solo se cierra la sesión si el servidor la rechaza; un corte de red o un
+        // error 500 no deben echar al usuario.
+        if ([401, 403].includes(refreshError.response?.status)) {
+          window.dispatchEvent(new Event("teca:unauthorized"));
+        }
       }
     } else if (error.response?.status === 401) {
       window.dispatchEvent(new Event("teca:unauthorized"));

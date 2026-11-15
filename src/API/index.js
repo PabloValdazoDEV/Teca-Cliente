@@ -1,15 +1,5 @@
 import api from "@/API/api";
 
-const GetAllUsers = async () => {
-  try {
-    const responde = await api.get("/users");
-    return responde.data;
-  } catch (error) {
-    console.error("Error al obtener los usuarios:", error);
-    return [];
-  }
-};
-
 const tryLogin = async (data) => {
   const response = await api.post("/login", data);
   return response.data;
@@ -49,47 +39,32 @@ const updatePassword = async (data) => {
   return response.data;
 };
 
-const getEmployees = async () => {
-  const response = await api.get("/users");
-  return response.data;
-};
-
 const updateEmployee = async (id, data) => {
   const response = await api.put(`/users/${id}`, data);
   return response.data;
 };
 
-const getDataCalendario = async (trabajador) => {
-  try {
-    const response = await api.get(
-      `/citas/calendario?trabajador=${trabajador}`
-    );
-    return response.data;
-  } catch (error) {
-    console.error(error);
-  }
+const getTeam = async () => {
+  const response = await api.get("/team");
+  return response.data;
 };
 
-const getFormDateCreate = async () => {
-  try {
-    const response = await api.get("/citas/createForm");
-
-    return response.data;
-  } catch (error) {
-    console.error(error);
-  }
+const createAgendaForAccount = async (userId) => {
+  const response = await api.post(`/team/${userId}/agenda`, {});
+  return response.data;
 };
 
-const getFormDateUser = async (id) => {
-  try {
-    const response = await api.get(
-      `/citas/createCalendar/${id}`
-    );
+const updateEmployeeAccess = async (id, active) => {
+  const response = await api.put(`/users/${id}/access`, { active });
+  return response.data;
+};
 
-    return response.data;
-  } catch (error) {
-    console.error(error);
-  }
+// Lanza el error: si la agenda no carga, la pantalla debe decirlo en vez de
+// mostrar huecos libres que quizá estén ocupados.
+const getFormDateUser = async (id, range) => {
+  const params = range ? { from: range.start.toISOString(), to: range.end.toISOString() } : undefined;
+  const response = await api.get(`/citas/createCalendar/${id}`, { params });
+  return response.data;
 };
 
 const postDataCreate = async (data) => {
@@ -103,24 +78,7 @@ const postDataCreate = async (data) => {
 };
 
 const deleteDate = async (id) => {
-  try {
-    await api.delete(`/citas/delete/${id}`,);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-const sendSms = async (phone, message) => {
-  try {
-    const response = await api.post('/citas/sendCommunication', {
-      to: `+34${phone}`,
-      message
-    });
-    return response.data;
-  } catch (error) {
-    console.error(error);
-    return { error: error.response?.data?.message || error.message }
-  }
+  await api.delete(`/citas/delete/${id}`);
 };
 
 const putDataEdit = async (data) => {
@@ -132,11 +90,6 @@ const putDataEdit = async (data) => {
     throw error;
   }
 };
-
-const getAllUser = async () => {
-  const response = await api.get("/citas/users");
-  return response.data;
-}
 
 const getPractitioners = async (includeInactive = false) => {
   const response = await api.get("/practitioners", {
@@ -224,37 +177,25 @@ const putCustomerEdit = async (data) => {
   }
 }
 
-const getCustomerDate = async (id) => {
-  try {
-    const response = await api.get(`/customers/delete/${id}`)
-    return response.data
-  } catch (error) {
-    console.error("Error en getCustomerDate:", error);
-    throw error;
-  }
-}
+// Archivar (solo administración). Si el paciente tiene citas futuras, el servidor
+// responde 409 con `futureAppointments` y hay que confirmar su cancelación.
+const archiveCustomer = async (id, { cancelFutureAppointments = false } = {}) => {
+  const response = await api.post(`/customers/${id}/archive`, { cancelFutureAppointments });
+  return response.data;
+};
 
-const deteleCustomeRelation = async (id) =>{
-  try {
-    await api.delete(`/customers/delete/${id}`)
-  } catch (error) {
-    console.error("Error en deteleCustomeRelation:", error);
-    throw error;
-  }
-} 
-
-const getAllDoc = async (id) => {
-  try {
-    const response = await api.get(`/docs/${id}`)
-    return response.data
-  } catch (error) {
-    console.error("Error en getAllDoc:", error);
-    throw error;
-  }
-}
+const restoreCustomer = async (id) => {
+  const response = await api.post(`/customers/${id}/restore`, {});
+  return response.data;
+};
 
 const getCustomerDetail = async (id) => {
   const response = await api.get(`/customers/detail/${id}`);
+  return response.data;
+};
+
+const getCustomerAccessLog = async (id) => {
+  const response = await api.get(`/customers/${id}/access-log`);
   return response.data;
 };
 
@@ -364,18 +305,7 @@ const putFcihaEdit = async (data) =>{
   }
 }
 
-const postDocCreate = async (data) =>{
-
-  try {
-    await api.post(`/docs/${data}`, data)
-  } catch (error) {
-    console.error("Error en postDocCreate:", error);
-    throw error;
-  }
-}
-
 export {
-  GetAllUsers,
   tryLogin,
   tryRegister,
   tryLogout,
@@ -384,16 +314,14 @@ export {
   resetPassword,
   updateProfile,
   updatePassword,
-  getEmployees,
   updateEmployee,
-  getDataCalendario,
-  getFormDateCreate,
+  updateEmployeeAccess,
+  getTeam,
+  createAgendaForAccount,
   getFormDateUser,
   postDataCreate,
   deleteDate,
-  sendSms,
   putDataEdit,
-  getAllUser,
   getPractitioners,
   createPractitioner,
   updatePractitioner,
@@ -407,10 +335,10 @@ export {
   searchCustomers,
   getCustomerEdit,
   putCustomerEdit,
-  getCustomerDate,
-  deteleCustomeRelation,
-  getAllDoc,
+  archiveCustomer,
+  restoreCustomer,
   getCustomerDetail,
+  getCustomerAccessLog,
   uploadCustomerDocument,
   createCustomerTemplates,
   uploadDocumentVersion,
@@ -422,6 +350,5 @@ export {
   postFcihaCreate,
   DeleteFciha,
   putFcihaEdit,
-  postDocCreate,
   DeleteDoc,
 };

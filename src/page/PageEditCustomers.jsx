@@ -5,7 +5,21 @@ import { FiArrowLeft, FiPlus, FiSave, FiTrash2 } from "react-icons/fi";
 import { getCustomerEdit, putCustomerEdit } from "@/API";
 import PreferredCommunicationField from "@/components/PreferredCommunicationField";
 
-const phoneDisplay = (phone) => phone.rawValue || [phone.countryCode, phone.phoneNumber].filter(Boolean).join(" ");
+import { phoneText } from "@/utils/contact";
+
+const phoneDisplay = (phone) => phone.rawValue || phoneText(phone);
+
+// Un teléfono escrito pero sin pulsar "Añadir" también se guarda.
+const withPendingPhone = (list, pending) =>
+  pending.rawValue.trim()
+    ? [...list, { ...pending, rawValue: pending.rawValue.trim(), isCommunicationPhone: list.length === 0 }]
+    : list;
+const addOnEnter = (add) => (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    add();
+  }
+};
 
 const PageEditCustomers = () => {
   const { id } = useParams();
@@ -31,7 +45,7 @@ const PageEditCustomers = () => {
   }, [data]);
 
   const mutation = useMutation({
-    mutationFn: () => putCustomerEdit({ id, ...form, dateBirth: form.dateBirth || null, cD: form.cD || null, weight: form.weight || null, height: form.height || null, province: form.province || null, PhoneNumber: phones }),
+    mutationFn: (phoneList) => putCustomerEdit({ id, ...form, dateBirth: form.dateBirth || null, cD: form.cD || null, weight: form.weight || null, height: form.height || null, province: form.province || null, PhoneNumber: phoneList }),
     onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ["customer", id] }), queryClient.invalidateQueries({ queryKey: ["customers"] })]); openCustomer(); },
     onError: (error) => setStatus(error.response?.data?.message || "No se han podido guardar los cambios"),
   });
@@ -45,7 +59,7 @@ const PageEditCustomers = () => {
     <main className="page" style={{ maxWidth: 980 }}>
       <button className="button-ghost" style={{ paddingLeft: 0, marginBottom: 10 }} onClick={openCustomer}><FiArrowLeft /> Volver al cliente</button>
       <header className="page-header"><div><p className="page-kicker">Datos personales</p><h1 className="page-title">Editar cliente</h1><p className="page-subtitle">El nombre es el único campo obligatorio.</p></div></header>
-      <form className="card card-pad customer-form-card" style={{ display: "grid", gap: 22 }} onSubmit={(event) => { event.preventDefault(); setStatus(""); mutation.mutate(); }}>
+      <form className="card card-pad customer-form-card" style={{ display: "grid", gap: 22 }} onSubmit={(event) => { event.preventDefault(); setStatus(""); mutation.mutate(withPendingPhone(phones, newPhone)); }}>
         <section className="responsive-two" style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", gap: 14 }}>
           <label className="field" style={{ gridColumn: "1 / -1" }}><span>Nombre completo *</span><input required name="fullName" value={form.fullName} onChange={change} /></label>
           <label className="field"><span>Fecha de nacimiento</span><input type="date" name="dateBirth" value={form.dateBirth} onChange={change} /></label>
@@ -67,7 +81,7 @@ const PageEditCustomers = () => {
           </div>
           <div className="phone-entry-grid" style={{ display: "grid", gridTemplateColumns: "130px 1fr auto", gap: 9, alignItems: "end" }}>
             <label className="field"><span>Etiqueta</span><input value={newPhone.label} onChange={(event) => setNewPhone((current) => ({ ...current, label: event.target.value }))} /></label>
-            <label className="field"><span>Teléfono o anotación</span><input value={newPhone.rawValue} onChange={(event) => setNewPhone((current) => ({ ...current, rawValue: event.target.value }))} /></label>
+            <label className="field"><span>Teléfono o anotación</span><input value={newPhone.rawValue} onChange={(event) => setNewPhone((current) => ({ ...current, rawValue: event.target.value }))} onKeyDown={addOnEnter(addPhone)} /></label>
             <button type="button" className="button-secondary" onClick={addPhone}><FiPlus /> Añadir</button>
           </div>
           {phones.map((phone, index) => (
@@ -75,10 +89,12 @@ const PageEditCustomers = () => {
               <label className="phone-list-label">
                 <input
                   type="radio"
+                  name="communicationPhone"
+                  aria-label="Teléfono para comunicaciones"
                   checked={phone.isCommunicationPhone}
                   onChange={() => setPhones((values) => values.map((value, position) => ({ ...value, isCommunicationPhone: position === index })))}
                 />
-                <span><strong>{phone.label}</strong> {phone.rawValue}</span>
+                <span><strong>{phone.label}</strong> {phoneText(phone)}</span>
               </label>
               <button type="button" className="icon-button" aria-label={`Eliminar ${phone.label || "teléfono"}`} onClick={() => setPhones((values) => values.filter((_, position) => position !== index))}><FiTrash2 /></button>
             </div>

@@ -4,3 +4,4 @@ dist/
 public/office/vendor/
 public/office/runtime/
 .DS_Store
+*.zip

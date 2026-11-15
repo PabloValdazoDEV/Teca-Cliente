@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FiClock, FiDollarSign, FiDownload, FiPlus, FiSave, FiShield, FiUserCheck, FiUsers } from "react-icons/fi";
-import { createPractitioner, downloadFullExport, getClinic, getPractitioners, invitePractitioner, updateClinic, updatePractitioner } from "@/API";
+import { Link } from "react-router";
+import { FiArrowRight, FiClock, FiDownload, FiSave, FiShield, FiUsers } from "react-icons/fi";
+import { downloadFullExport, getClinic, updateClinic } from "@/API";
 
 const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const hourShifts = [
@@ -20,17 +21,14 @@ const hourShifts = [
     ],
   },
 ];
-const emptyPractitioner = { name: "", lastName: "", email: "", color: "#087655" };
 
 const PageClinic = () => {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(null);
-  const [professional, setProfessional] = useState(emptyPractitioner);
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { data: clinicData, isLoading } = useQuery({ queryKey: ["clinic"], queryFn: getClinic });
-  const { data: practitionersData } = useQuery({ queryKey: ["practitioners", "all"], queryFn: () => getPractitioners(true) });
 
   useEffect(() => {
     if (clinicData?.clinic) setForm(clinicData.clinic);
@@ -41,21 +39,6 @@ const PageClinic = () => {
     onSuccess: async () => { setMessageIsError(false); setMessage("Configuración guardada correctamente"); await queryClient.invalidateQueries({ queryKey: ["clinic"] }); },
     onError: (error) => { setMessageIsError(true); setMessage(error.response?.data?.message || "No se ha podido guardar el horario"); },
   });
-  const createMutation = useMutation({
-    mutationFn: () => createPractitioner(professional),
-    onSuccess: async () => { setProfessional(emptyPractitioner); setMessageIsError(false); setMessage("Profesional añadido a la agenda"); await queryClient.invalidateQueries({ queryKey: ["practitioners"] }); },
-    onError: (error) => { setMessageIsError(true); setMessage(error.response?.data?.message || "No se ha podido crear el profesional"); },
-  });
-  const toggleMutation = useMutation({
-    mutationFn: (item) => updatePractitioner(item.id, { name: item.name, lastName: item.lastName || "", email: item.email || "", color: item.color, active: !item.active }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["practitioners"] }),
-  });
-  const inviteMutation = useMutation({
-    mutationFn: (item) => invitePractitioner(item.id, item.email),
-    onSuccess: async () => { setMessageIsError(false); setMessage("Invitación enviada. El enlace será válido durante 48 horas"); await queryClient.invalidateQueries({ queryKey: ["practitioners"] }); },
-    onError: (error) => { setMessageIsError(true); setMessage(error.response?.data?.message || "No se ha podido enviar la invitación"); },
-  });
-
   const updateHour = (index, field, value) => setForm((current) => ({ ...current, hours: current.hours.map((hour, position) => position === index ? { ...hour, [field]: value } : hour) }));
   const downloadWeeklyBackup = async () => {
     setExporting(true);
@@ -74,7 +57,6 @@ const PageClinic = () => {
     }
   };
   if (isLoading || !form) return <main className="page"><div className="card empty-state">Cargando configuración…</div></main>;
-  const practitioners = practitionersData?.practitioners || [];
   const lastBackupDate = form.lastBackupExportAt ? new Date(form.lastBackupExportAt) : null;
   const backupIsCurrent = lastBackupDate && Date.now() - lastBackupDate.getTime() < 7 * 24 * 60 * 60 * 1_000;
 
@@ -127,22 +109,9 @@ const PageClinic = () => {
           </section>
 
           <section className="card card-pad">
-            <div style={{ display: "flex", alignItems: "center", gap: 9 }}><FiPlus color="var(--primary)" /><h2 style={{ margin: 0, fontSize: 19 }}>Añadir profesional</h2></div>
-            <p className="helper">Se crea solo su agenda. No necesita email ni contraseña.</p>
-            <form onSubmit={(event) => { event.preventDefault(); createMutation.mutate(); }} style={{ display: "grid", gap: 11, marginTop: 14 }}>
-              <label className="field"><span>Nombre *</span><input required value={professional.name} onChange={(event) => setProfessional((current) => ({ ...current, name: event.target.value }))} /></label>
-              <label className="field"><span>Apellidos</span><input value={professional.lastName} onChange={(event) => setProfessional((current) => ({ ...current, lastName: event.target.value }))} /></label>
-              <label className="field"><span>Email (opcional)</span><input type="email" value={professional.email} onChange={(event) => setProfessional((current) => ({ ...current, email: event.target.value }))} /></label>
-              <label className="field"><span>Color de agenda</span><input type="color" value={professional.color} onChange={(event) => setProfessional((current) => ({ ...current, color: event.target.value }))} /></label>
-              <button className="button-primary" disabled={createMutation.isPending}><FiUserCheck /> Crear agenda</button>
-            </form>
-          </section>
-
-          <section className="card card-pad">
-            <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}><FiUsers color="var(--primary)" /><h2 style={{ margin: 0, fontSize: 19 }}>Profesionales</h2></div>
-            <div style={{ display: "grid", gap: 8 }}>
-              {practitioners.map((item) => <div key={item.id} className="practitioner-list-item" style={{ opacity: item.active ? 1 : .58 }}><div className="practitioner-list-copy"><span style={{ width: 10, height: 10, flex: "0 0 auto", borderRadius: "50%", background: item.color }} /><div><strong style={{ fontSize: 13 }}>{item.name} {item.lastName}</strong><small className="helper" style={{ display: "block" }}>{item.status === "INVITED" ? "Invitación pendiente" : item.userId ? "Con acceso" : "Solo agenda"}</small></div></div><div className="practitioner-list-actions">{!item.userId && item.email && <button type="button" className="button-ghost" onClick={() => inviteMutation.mutate(item)}>Invitar</button>}<button type="button" className="button-ghost" onClick={() => toggleMutation.mutate(item)}>{item.active ? "Desactivar" : "Activar"}</button></div></div>)}
-            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 9 }}><FiUsers color="var(--primary)" /><h2 style={{ margin: 0, fontSize: 19 }}>Profesionales y accesos</h2></div>
+            <p className="helper">Quién tiene agenda y quién puede entrar en TECA se gestiona ahora desde una sola pantalla.</p>
+            <Link to="/team" className="button-secondary" style={{ width: "100%", marginTop: 8 }}>Ir a Equipo <FiArrowRight /></Link>
           </section>
         </div>
       </div>

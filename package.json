@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:lan": "VITE_API_URL=/api vite --host",
     "build": "npm run office:vendor && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "office:vendor": "node scripts/prepare-office-assets.mjs --vendor",
-    "office:runtime": "node scripts/prepare-office-assets.mjs --runtime"
+    "office:runtime": "node scripts/prepare-office-assets.mjs --runtime",
+    "office:manifest": "node scripts/prepare-office-assets.mjs --manifest"
   },
   "dependencies": {
     "@fullcalendar/daygrid": "^6.1.15",

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { FiArrowRight, FiPlus } from "react-icons/fi";
+import { FiArrowRight, FiCheckCircle, FiPlus } from "react-icons/fi";
+import { useAuth } from "@/context/AuthContext";
 import { getClinic, getPractitioners } from "@/API";
 import CalendarioVista from "@/components/Calendario";
 import AppointmentPanel from "@/components/AppointmentPanel";
+import TodayAppointments from "@/components/TodayAppointments";
+import PrintAgendaMenu from "@/components/PrintAgendaMenu";
 
 const emptyPanel = () => ({ mode: "empty", selected: null, start: null, customerId: "", draftSeed: null });
 
@@ -53,6 +56,17 @@ const PageHome = () => {
   const [draftAppointment, setDraftAppointment] = useState(null);
   const [calendarFocusDate, setCalendarFocusDate] = useState(null);
   const [availabilityMode, setAvailabilityMode] = useState(false);
+  const [notice, setNotice] = useState("");
+  const { user } = useAuth();
+  const isAdmin = ["ADMIN", "SUPERADMIN"].includes(user?.role);
+
+  // Aviso breve tras guardar una cita: el panel se cierra y, sin esto, no
+  // quedaba constancia visible de que se había guardado.
+  useEffect(() => {
+    if (!notice) return undefined;
+    const timer = setTimeout(() => setNotice(""), 4000);
+    return () => clearTimeout(timer);
+  }, [notice]);
   const { data, isLoading, isError } = useQuery({ queryKey: ["practitioners"], queryFn: () => getPractitioners(false) });
   const { data: clinicData } = useQuery({ queryKey: ["clinic"], queryFn: getClinic });
   const practitioners = useMemo(() => data?.practitioners || [], [data]);
@@ -130,9 +144,12 @@ const PageHome = () => {
       <header className="page-header" style={{ marginBottom: 14, alignItems: "center" }}>
         <div><p className="page-kicker">Agenda del centro</p><h1 className="page-title">Citas</h1></div>
         {availabilityMode ? (
-          <button type="button" className="button-secondary" onClick={() => { setAvailabilityMode(false); scrollTo(".appointment-panel"); }}><FiArrowRight /> Volver al formulario</button>
+          <button type="button" className="button-secondary availability-return" onClick={() => { setAvailabilityMode(false); scrollTo(".appointment-panel"); }}><FiArrowRight /> Volver al formulario</button>
         ) : (
-          <button type="button" className="button-primary" onClick={() => { setDraftAppointment(null); setPanel(createPanel(nextOpening(businessHours), "", selectedId, clinicData?.clinic?.defaultHourlyRate)); scrollTo(".appointment-panel.is-active"); }}><FiPlus /> Crear cita</button>
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {practitioners.length > 0 && <PrintAgendaMenu practitioners={practitioners} selectedId={selectedId} />}
+            <button type="button" className="button-primary" onClick={() => { setDraftAppointment(null); setPanel(createPanel(nextOpening(businessHours), "", selectedId, clinicData?.clinic?.defaultHourlyRate)); scrollTo(".appointment-panel.is-active"); }}><FiPlus /> Crear cita</button>
+          </div>
         )}
       </header>
 
@@ -145,6 +162,13 @@ const PageHome = () => {
           </button>
         ))}
       </div>
+
+      {practitioner && !availabilityMode && (
+        <TodayAppointments
+          practitioner={practitioner}
+          onSelect={(selected) => { setDraftAppointment(null); setPanel({ mode: "detail", selected, start: null, customerId: "", draftSeed: null }); scrollTo(".appointment-panel.is-active"); }}
+        />
+      )}
 
       <section className={`agenda-layout ${availabilityMode ? "is-availability-mode" : ""}`}>
         {practitioner ? (
@@ -159,7 +183,9 @@ const PageHome = () => {
             onCreateAt={selectCalendarTime}
             onSelectEvent={(selected) => { setAvailabilityMode(false); setDraftAppointment(null); setPanel({ mode: "detail", selected, start: null, customerId: "", draftSeed: null }); scrollTo(".appointment-panel.is-active"); }}
           />
-        ) : <div className="card empty-state">Crea un profesional en “Clínica y agendas” para empezar.</div>}
+        ) : isLoading ? <div className="card empty-state">Cargando agendas…</div>
+          : isError ? <div className="card empty-state">No se han podido cargar las agendas. Recarga la página.</div>
+          : <div className="card empty-state">{isAdmin ? "Crea un profesional en “Clínica y agendas” para empezar." : "Todavía no hay agendas. Pide a la administración que cree un profesional."}</div>}
         <AppointmentPanel
           allowOutsideHours={allowOutsideHours}
           businessHours={businessHours}
@@ -173,8 +199,13 @@ const PageHome = () => {
           onDraftChange={setDraftAppointment}
           onShowAvailability={showAvailability}
           onClose={closePanel}
-          onCreated={closePanel}
+          onCreated={(message) => { closePanel(); setNotice(message || "Cita guardada"); }}
         />
+        {notice && (
+          <div className="status-message" role="status" aria-live="polite" style={{ position: "fixed", right: 20, bottom: 20, zIndex: 50, display: "flex", alignItems: "center", gap: 8, boxShadow: "0 8px 24px rgba(0,0,0,.12)", fontWeight: 700 }}>
+            <FiCheckCircle aria-hidden="true" /> {notice}
+          </div>
+        )}
       </section>
     </main>
   );
